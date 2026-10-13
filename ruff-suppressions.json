@@ -1,0 +1,480 @@
+{
+  "_comment": [
+    "Ruff's remaining findings, per file and per rule. A ratchet: counts may fall,",
+    "never rise. Enforced by scripts/lint_ledger.py, which `make lint` and CI run.",
+    "",
+    "Regenerate with `python scripts/lint_ledger.py --update` AFTER fixing",
+    "something, and read the diff: a number going up means the commit is wrong, not",
+    "that the ledger is stale.",
+    "",
+    "The shape mirrors the SPA's eslint-suppressions.json on purpose, so the two",
+    "halves of this product answer 'how much lint debt is left' the same way."
+  ],
+  "alembic/env.py": {
+    "I001": {
+      "count": 1
+    }
+  },
+  "controllers/activity_log_controller.py": {
+    "E501": {
+      "count": 1
+    },
+    "I001": {
+      "count": 1
+    },
+    "RUF010": {
+      "count": 1
+    }
+  },
+  "controllers/auth_controller.py": {
+    "E501": {
+      "count": 42
+    },
+    "I001": {
+      "count": 1
+    },
+    "UP017": {
+      "count": 9
+    },
+    "W291": {
+      "count": 2
+    },
+    "W292": {
+      "count": 1
+    },
+    "W293": {
+      "count": 4
+    }
+  },
+  "controllers/permissions.py": {
+    "E501": {
+      "count": 3
+    },
+    "I001": {
+      "count": 1
+    },
+    "UP017": {
+      "count": 1
+    },
+    "W291": {
+      "count": 5
+    },
+    "W292": {
+      "count": 1
+    },
+    "W293": {
+      "count": 6
+    }
+  },
+  "controllers/roles.py": {
+    "E501": {
+      "count": 11
+    },
+    "I001": {
+      "count": 1
+    },
+    "RUF010": {
+      "count": 2
+    },
+    "W291": {
+      "count": 12
+    },
+    "W292": {
+      "count": 1
+    },
+    "W293": {
+      "count": 16
+    }
+  },
+  "controllers/user_controller.py": {
+    "E501": {
+      "count": 19
+    },
+    "I001": {
+      "count": 1
+    },
+    "UP006": {
+      "count": 3
+    },
+    "UP017": {
+      "count": 3
+    },
+    "UP035": {
+      "count": 1
+    },
+    "W291": {
+      "count": 7
+    },
+    "W293": {
+      "count": 13
+    }
+  },
+  "core/config.py": {
+    "I001": {
+      "count": 1
+    }
+  },
+  "core/errors.py": {
+    "I001": {
+      "count": 1
+    },
+    "SIM300": {
+      "count": 1
+    }
+  },
+  "core/logging.py": {
+    "I001": {
+      "count": 1
+    }
+  },
+  "core/middleware.py": {
+    "I001": {
+      "count": 1
+    }
+  },
+  "core/permissions.py": {
+    "I001": {
+      "count": 1
+    },
+    "SIM103": {
+      "count": 1
+    }
+  },
+  "dependencies/auth.py": {
+    "I001": {
+      "count": 1
+    }
+  },
+  "integrations/aws_ses.py": {
+    "I001": {
+      "count": 1
+    },
+    "RUF010": {
+      "count": 1
+    }
+  },
+  "main.py": {
+    "I001": {
+      "count": 1
+    }
+  },
+  "models/activity_log.py": {
+    "E501": {
+      "count": 1
+    },
+    "I001": {
+      "count": 1
+    },
+    "UP017": {
+      "count": 1
+    }
+  },
+  "models/permissions.py": {
+    "E402": {
+      "count": 1
+    },
+    "E501": {
+      "count": 1
+    },
+    "I001": {
+      "count": 2
+    },
+    "UP017": {
+      "count": 5
+    },
+    "W291": {
+      "count": 1
+    },
+    "W292": {
+      "count": 1
+    }
+  },
+  "models/role_permissions.py": {
+    "I001": {
+      "count": 1
+    },
+    "W292": {
+      "count": 1
+    }
+  },
+  "models/roles.py": {
+    "E402": {
+      "count": 1
+    },
+    "E501": {
+      "count": 1
+    },
+    "I001": {
+      "count": 2
+    },
+    "UP017": {
+      "count": 5
+    },
+    "W292": {
+      "count": 1
+    }
+  },
+  "models/user.py": {
+    "E402": {
+      "count": 1
+    },
+    "E501": {
+      "count": 1
+    },
+    "I001": {
+      "count": 2
+    },
+    "UP017": {
+      "count": 5
+    },
+    "W292": {
+      "count": 1
+    }
+  },
+  "models/user_roles.py": {
+    "I001": {
+      "count": 1
+    },
+    "W292": {
+      "count": 1
+    }
+  },
+  "routes/activity_logs.py": {
+    "I001": {
+      "count": 2
+    }
+  },
+  "routes/auth.py": {
+    "E501": {
+      "count": 5
+    },
+    "I001": {
+      "count": 1
+    },
+    "W292": {
+      "count": 1
+    }
+  },
+  "routes/auth_middleware.py": {
+    "I001": {
+      "count": 1
+    }
+  },
+  "routes/health.py": {
+    "I001": {
+      "count": 1
+    }
+  },
+  "routes/permissions.py": {
+    "E501": {
+      "count": 6
+    },
+    "I001": {
+      "count": 1
+    },
+    "UP007": {
+      "count": 3
+    },
+    "W291": {
+      "count": 3
+    },
+    "W293": {
+      "count": 1
+    }
+  },
+  "routes/roles.py": {
+    "E501": {
+      "count": 5
+    },
+    "I001": {
+      "count": 1
+    },
+    "UP007": {
+      "count": 2
+    },
+    "W292": {
+      "count": 1
+    },
+    "W293": {
+      "count": 1
+    }
+  },
+  "routes/user.py": {
+    "E501": {
+      "count": 6
+    },
+    "I001": {
+      "count": 1
+    },
+    "UP007": {
+      "count": 2
+    },
+    "W292": {
+      "count": 1
+    }
+  },
+  "schemas/email_schema.py": {
+    "I001": {
+      "count": 1
+    },
+    "W292": {
+      "count": 1
+    }
+  },
+  "schemas/permissions.py": {
+    "I001": {
+      "count": 1
+    }
+  },
+  "schemas/roles.py": {
+    "I001": {
+      "count": 1
+    },
+    "UP006": {
+      "count": 2
+    },
+    "UP035": {
+      "count": 1
+    }
+  },
+  "schemas/user.py": {
+    "I001": {
+      "count": 1
+    },
+    "UP006": {
+      "count": 2
+    },
+    "UP035": {
+      "count": 1
+    },
+    "UP045": {
+      "count": 6
+    }
+  },
+  "seeders/user_seeder.py": {
+    "E501": {
+      "count": 1
+    },
+    "I001": {
+      "count": 2
+    }
+  },
+  "services/permissions.py": {
+    "E501": {
+      "count": 2
+    },
+    "I001": {
+      "count": 1
+    },
+    "W292": {
+      "count": 1
+    }
+  },
+  "services/role.py": {
+    "E501": {
+      "count": 2
+    },
+    "I001": {
+      "count": 1
+    },
+    "W292": {
+      "count": 1
+    },
+    "W293": {
+      "count": 2
+    }
+  },
+  "services/user.py": {
+    "E501": {
+      "count": 2
+    },
+    "I001": {
+      "count": 1
+    },
+    "W291": {
+      "count": 5
+    },
+    "W292": {
+      "count": 1
+    },
+    "W293": {
+      "count": 4
+    }
+  },
+  "services/user_role.py": {
+    "I001": {
+      "count": 1
+    },
+    "W292": {
+      "count": 1
+    },
+    "W293": {
+      "count": 5
+    }
+  },
+  "tests/integration/test_auth_middleware.py": {
+    "E501": {
+      "count": 1
+    },
+    "UP017": {
+      "count": 1
+    }
+  },
+  "tests/integration/test_migrations.py": {
+    "I001": {
+      "count": 3
+    }
+  },
+  "tests/integration/test_user_listing_queries.py": {
+    "E501": {
+      "count": 1
+    }
+  },
+  "tests/live/test_auth_live.py": {
+    "SIM105": {
+      "count": 1
+    }
+  },
+  "tests/live/test_deployment_wiring.py": {
+    "I001": {
+      "count": 1
+    }
+  },
+  "tests/live/test_identity_rbac.py": {
+    "I001": {
+      "count": 1
+    },
+    "RUF005": {
+      "count": 1
+    },
+    "SIM300": {
+      "count": 1
+    }
+  },
+  "tests/unit/test_body_limit.py": {
+    "SIM117": {
+      "count": 4
+    }
+  },
+  "tests/unit/test_setup_scripts.py": {
+    "E501": {
+      "count": 3
+    },
+    "S108": {
+      "count": 1
+    }
+  },
+  "utils/common.py": {
+    "I001": {
+      "count": 1
+    },
+    "W292": {
+      "count": 1
+    }
+  },
+  "utils/constants.py": {
+    "E501": {
+      "count": 18
+    }
+  }
+}

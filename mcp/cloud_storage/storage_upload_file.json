@@ -1,0 +1,36 @@
+{
+  "name": "storage_upload_file",
+  "description": "Upload a file or image to cloud storage (AWS S3 or Azure Blob Storage) with automatic fallback to local filesystem storage if unconfigured or unreachable.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "workspace_id": {
+        "type": "string",
+        "description": "Workspace identifier for tenant isolation"
+      },
+      "filename": {
+        "type": "string",
+        "description": "Original file name"
+      },
+      "content_base64": {
+        "type": "string",
+        "description": "Base64-encoded raw file content"
+      },
+      "content_type": {
+        "type": "string",
+        "description": "MIME content type (e.g., image/png, application/pdf)"
+      },
+      "provider": {
+        "type": "string",
+        "enum": ["auto", "local", "aws_s3", "azure_blob"],
+        "description": "Target storage provider. 'auto' selects configured cloud provider with local fallback."
+      },
+      "config": {
+        "type": "object",
+        "description": "Optional provider credentials and configuration override"
+      }
+    },
+    "required": ["filename", "content_base64"],
+    "additionalProperties": false
+  }
+}

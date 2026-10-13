@@ -1,0 +1,355 @@
+{"id": "SEED-user_get_profile-1", "quality": "seed_needs_args_review", "message": "Show my profile details", "expected_tool": "user_get_profile", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-user_get_profile-2", "quality": "seed_needs_args_review", "message": "Who am I logged in as?", "expected_tool": "user_get_profile", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-user_get_profile-3", "quality": "seed_needs_args_review", "message": "Get my user information", "expected_tool": "user_get_profile", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workspace_list-1", "quality": "seed_needs_args_review", "message": "List my workspaces", "expected_tool": "workspace_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workspace_list-2", "quality": "seed_needs_args_review", "message": "Show all workspaces I belong to", "expected_tool": "workspace_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workspace_list-3", "quality": "seed_needs_args_review", "message": "What workspaces do I have access to?", "expected_tool": "workspace_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workspace_create-1", "quality": "seed_needs_args_review", "message": "Create a new workspace named Engineering", "expected_tool": "workspace_create", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workspace_create-2", "quality": "seed_needs_args_review", "message": "Set up a workspace called Mobile Team", "expected_tool": "workspace_create", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workspace_create-3", "quality": "seed_needs_args_review", "message": "Start a new workspace", "expected_tool": "workspace_create", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workspace_tree_get-1", "quality": "seed_needs_args_review", "message": "Show workspace project hierarchy", "expected_tool": "workspace_tree_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workspace_tree_get-2", "quality": "seed_needs_args_review", "message": "Get the workspace tree", "expected_tool": "workspace_tree_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workspace_tree_get-3", "quality": "seed_needs_args_review", "message": "Load space and folder structure", "expected_tool": "workspace_tree_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workspace_update-1", "quality": "seed_needs_args_review", "message": "Rename workspace to Platform Core", "expected_tool": "workspace_update", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workspace_update-2", "quality": "seed_needs_args_review", "message": "Update workspace description", "expected_tool": "workspace_update", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workspace_update-3", "quality": "seed_needs_args_review", "message": "Change workspace name to Backend", "expected_tool": "workspace_update", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workspace_members_list-1", "quality": "seed_needs_args_review", "message": "Show workspace members", "expected_tool": "workspace_members_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workspace_members_list-2", "quality": "seed_needs_args_review", "message": "Who is in this workspace?", "expected_tool": "workspace_members_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workspace_members_list-3", "quality": "seed_needs_args_review", "message": "List all users in Engineering workspace", "expected_tool": "workspace_members_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workspace_member_add-1", "quality": "seed_needs_args_review", "message": "Add alex@example.com to the workspace as member", "expected_tool": "workspace_member_add", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workspace_member_add-2", "quality": "seed_needs_args_review", "message": "Invite sarah to this workspace as admin", "expected_tool": "workspace_member_add", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workspace_member_add-3", "quality": "seed_needs_args_review", "message": "Add user 45 to workspace", "expected_tool": "workspace_member_add", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workspace_member_update_role-1", "quality": "seed_needs_args_review", "message": "Promote Alex to admin in this workspace", "expected_tool": "workspace_member_update_role", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workspace_member_update_role-2", "quality": "seed_needs_args_review", "message": "Change Sarah's role to viewer", "expected_tool": "workspace_member_update_role", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workspace_member_update_role-3", "quality": "seed_needs_args_review", "message": "Update member role to admin", "expected_tool": "workspace_member_update_role", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workspace_member_remove-1", "quality": "seed_needs_args_review", "message": "Remove Alex from the workspace", "expected_tool": "workspace_member_remove", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workspace_member_remove-2", "quality": "seed_needs_args_review", "message": "Kick user 42 from workspace", "expected_tool": "workspace_member_remove", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workspace_member_remove-3", "quality": "seed_needs_args_review", "message": "Revoke workspace membership for Sarah", "expected_tool": "workspace_member_remove", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-space_get-1", "quality": "seed_needs_args_review", "message": "Get space details for Mobile App", "expected_tool": "space_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-space_get-2", "quality": "seed_needs_args_review", "message": "Show space info", "expected_tool": "space_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-space_get-3", "quality": "seed_needs_args_review", "message": "Inspect space settings", "expected_tool": "space_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-space_create-1", "quality": "seed_needs_args_review", "message": "Create a space called Backend Core", "expected_tool": "space_create", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-space_create-2", "quality": "seed_needs_args_review", "message": "Add a new space for Web Frontend", "expected_tool": "space_create", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-space_create-3", "quality": "seed_needs_args_review", "message": "Create space with key MOB", "expected_tool": "space_create", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-space_update-1", "quality": "seed_needs_args_review", "message": "Rename space to Core Infrastructure", "expected_tool": "space_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-space_update-2", "quality": "seed_needs_args_review", "message": "Update space description", "expected_tool": "space_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-space_update-3", "quality": "seed_needs_args_review", "message": "Modify space settings", "expected_tool": "space_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-space_archive-1", "quality": "seed_needs_args_review", "message": "Archive space Legacy Billing", "expected_tool": "space_archive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-space_archive-2", "quality": "seed_needs_args_review", "message": "Set space as archived", "expected_tool": "space_archive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-space_archive-3", "quality": "seed_needs_args_review", "message": "Put space into archive", "expected_tool": "space_archive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-space_unarchive-1", "quality": "seed_needs_args_review", "message": "Unarchive space Legacy Billing", "expected_tool": "space_unarchive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-space_unarchive-2", "quality": "seed_needs_args_review", "message": "Restore archived space", "expected_tool": "space_unarchive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-space_unarchive-3", "quality": "seed_needs_args_review", "message": "Reactivate space", "expected_tool": "space_unarchive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-space_freeze-1", "quality": "seed_needs_args_review", "message": "Freeze space Engineering", "expected_tool": "space_freeze", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-space_freeze-2", "quality": "seed_needs_args_review", "message": "Lock space for migration", "expected_tool": "space_freeze", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-space_freeze-3", "quality": "seed_needs_args_review", "message": "Put space in frozen state", "expected_tool": "space_freeze", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-space_unfreeze-1", "quality": "seed_needs_args_review", "message": "Unfreeze space Engineering", "expected_tool": "space_unfreeze", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-space_unfreeze-2", "quality": "seed_needs_args_review", "message": "Unlock space", "expected_tool": "space_unfreeze", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-space_unfreeze-3", "quality": "seed_needs_args_review", "message": "Remove freeze lock from space", "expected_tool": "space_unfreeze", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-folder_create-1", "quality": "seed_needs_args_review", "message": "Create a folder named Sprints inside Mobile Space", "expected_tool": "folder_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-folder_create-2", "quality": "seed_needs_args_review", "message": "Add folder Q3 Deliverables", "expected_tool": "folder_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-folder_create-3", "quality": "seed_needs_args_review", "message": "Create new folder", "expected_tool": "folder_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-folder_update-1", "quality": "seed_needs_args_review", "message": "Rename folder to Q4 Initiatives", "expected_tool": "folder_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-folder_update-2", "quality": "seed_needs_args_review", "message": "Update folder name", "expected_tool": "folder_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-folder_update-3", "quality": "seed_needs_args_review", "message": "Change folder title", "expected_tool": "folder_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-folder_archive-1", "quality": "seed_needs_args_review", "message": "Archive folder Q1 Archive", "expected_tool": "folder_archive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-folder_archive-2", "quality": "seed_needs_args_review", "message": "Put folder into archive", "expected_tool": "folder_archive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-folder_archive-3", "quality": "seed_needs_args_review", "message": "Archive this folder", "expected_tool": "folder_archive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-folder_unarchive-1", "quality": "seed_needs_args_review", "message": "Unarchive folder Q1", "expected_tool": "folder_unarchive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-folder_unarchive-2", "quality": "seed_needs_args_review", "message": "Restore archived folder", "expected_tool": "folder_unarchive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-folder_unarchive-3", "quality": "seed_needs_args_review", "message": "Unarchive this folder", "expected_tool": "folder_unarchive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-list_create-1", "quality": "seed_needs_args_review", "message": "Create a list called Sprint 12 under Space Mobile", "expected_tool": "list_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-list_create-2", "quality": "seed_needs_args_review", "message": "Add list Backlog in folder Core", "expected_tool": "list_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-list_create-3", "quality": "seed_needs_args_review", "message": "Create new list Tasks", "expected_tool": "list_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-list_update-1", "quality": "seed_needs_args_review", "message": "Rename list to In Progress Bugs", "expected_tool": "list_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-list_update-2", "quality": "seed_needs_args_review", "message": "Update list name", "expected_tool": "list_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-list_update-3", "quality": "seed_needs_args_review", "message": "Change list title", "expected_tool": "list_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-list_archive-1", "quality": "seed_needs_args_review", "message": "Archive list Sprint 1", "expected_tool": "list_archive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-list_archive-2", "quality": "seed_needs_args_review", "message": "Put list into archive", "expected_tool": "list_archive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-list_archive-3", "quality": "seed_needs_args_review", "message": "Archive this list", "expected_tool": "list_archive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-list_unarchive-1", "quality": "seed_needs_args_review", "message": "Unarchive list Sprint 1", "expected_tool": "list_unarchive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-list_unarchive-2", "quality": "seed_needs_args_review", "message": "Restore archived list", "expected_tool": "list_unarchive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-list_unarchive-3", "quality": "seed_needs_args_review", "message": "Reactivate list", "expected_tool": "list_unarchive", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-governance_settings_get-1", "quality": "seed_needs_args_review", "message": "Get workspace governance settings", "expected_tool": "governance_settings_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-governance_settings_get-2", "quality": "seed_needs_args_review", "message": "Check WIP limits policy", "expected_tool": "governance_settings_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-governance_settings_get-3", "quality": "seed_needs_args_review", "message": "View governance configuration", "expected_tool": "governance_settings_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-governance_settings_update-1", "quality": "seed_needs_args_review", "message": "Enable strict WIP limits", "expected_tool": "governance_settings_update", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-governance_settings_update-2", "quality": "seed_needs_args_review", "message": "Require story estimation before sprint start", "expected_tool": "governance_settings_update", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-governance_settings_update-3", "quality": "seed_needs_args_review", "message": "Update governance policy", "expected_tool": "governance_settings_update", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-issue_list-1", "quality": "seed_needs_args_review", "message": "List all open bugs", "expected_tool": "issue_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_list-2", "quality": "seed_needs_args_review", "message": "Find tickets assigned to Alex in Sprint 4", "expected_tool": "issue_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_list-3", "quality": "seed_needs_args_review", "message": "Search issues with keyword checkout", "expected_tool": "issue_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_board_get-1", "quality": "seed_needs_args_review", "message": "Show the Kanban board", "expected_tool": "issue_board_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_board_get-2", "quality": "seed_needs_args_review", "message": "Get board cards for Mobile sprint", "expected_tool": "issue_board_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_board_get-3", "quality": "seed_needs_args_review", "message": "Load the board view", "expected_tool": "issue_board_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_backlog_get-1", "quality": "seed_needs_args_review", "message": "Show the backlog", "expected_tool": "issue_backlog_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_backlog_get-2", "quality": "seed_needs_args_review", "message": "Get unassigned backlog tickets", "expected_tool": "issue_backlog_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_backlog_get-3", "quality": "seed_needs_args_review", "message": "Load backlog view", "expected_tool": "issue_backlog_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_key_resolve-1", "quality": "seed_needs_args_review", "message": "Open ticket ENG-104", "expected_tool": "issue_key_resolve", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_key_resolve-2", "quality": "seed_needs_args_review", "message": "What is issue PMT-42?", "expected_tool": "issue_key_resolve", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_key_resolve-3", "quality": "seed_needs_args_review", "message": "Look up issue by key ENG-104", "expected_tool": "issue_key_resolve", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_get-1", "quality": "seed_needs_args_review", "message": "Get details for issue c7b...", "expected_tool": "issue_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_get-2", "quality": "seed_needs_args_review", "message": "Inspect task details", "expected_tool": "issue_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_get-3", "quality": "seed_needs_args_review", "message": "Load ticket modal", "expected_tool": "issue_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_create-1", "quality": "seed_needs_args_review", "message": "Create a bug titled Login crash with high priority", "expected_tool": "issue_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-issue_create-2", "quality": "seed_needs_args_review", "message": "Create a task Write unit tests in Sprint 2", "expected_tool": "issue_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-issue_create-3", "quality": "seed_needs_args_review", "message": "File a new ticket for mobile checkout", "expected_tool": "issue_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-issue_update-1", "quality": "seed_needs_args_review", "message": "Set priority of ENG-104 to urgent", "expected_tool": "issue_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-issue_update-2", "quality": "seed_needs_args_review", "message": "Move ENG-104 to In Review", "expected_tool": "issue_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-issue_update-3", "quality": "seed_needs_args_review", "message": "Assign ticket ENG-104 to Sarah", "expected_tool": "issue_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-issue_update-4", "quality": "seed_needs_args_review", "message": "Update story points to 5", "expected_tool": "issue_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-issue_move-1", "quality": "seed_needs_args_review", "message": "Move ticket ENG-104 to Sprint 3 list", "expected_tool": "issue_move", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-issue_move-2", "quality": "seed_needs_args_review", "message": "Transfer issue to the Bugs list", "expected_tool": "issue_move", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-issue_move-3", "quality": "seed_needs_args_review", "message": "Move card to another list", "expected_tool": "issue_move", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-issue_rank_backlog-1", "quality": "seed_needs_args_review", "message": "Move ENG-104 to top of backlog", "expected_tool": "issue_rank_backlog", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-issue_rank_backlog-2", "quality": "seed_needs_args_review", "message": "Rank ENG-104 before ENG-88", "expected_tool": "issue_rank_backlog", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-issue_rank_backlog-3", "quality": "seed_needs_args_review", "message": "Reorder backlog item", "expected_tool": "issue_rank_backlog", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-issue_delete-1", "quality": "seed_needs_args_review", "message": "Delete ticket ENG-104", "expected_tool": "issue_delete", "expected_tier": "T3", "exposure": "enabled"}
+{"id": "SEED-issue_delete-2", "quality": "seed_needs_args_review", "message": "Remove issue PMT-23", "expected_tool": "issue_delete", "expected_tier": "T3", "exposure": "enabled"}
+{"id": "SEED-issue_delete-3", "quality": "seed_needs_args_review", "message": "Delete this task", "expected_tool": "issue_delete", "expected_tier": "T3", "exposure": "enabled"}
+{"id": "SEED-comment_list-1", "quality": "seed_needs_args_review", "message": "Show comments on ENG-104", "expected_tool": "comment_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-comment_list-2", "quality": "seed_needs_args_review", "message": "Get ticket discussion thread", "expected_tool": "comment_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-comment_list-3", "quality": "seed_needs_args_review", "message": "Read comments for this issue", "expected_tool": "comment_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-comment_create-1", "quality": "seed_needs_args_review", "message": "Comment on ENG-104 saying fix is deployed to staging", "expected_tool": "comment_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-comment_create-2", "quality": "seed_needs_args_review", "message": "Add comment to ticket", "expected_tool": "comment_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-comment_create-3", "quality": "seed_needs_args_review", "message": "Post a reply on this issue", "expected_tool": "comment_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-comment_update-1", "quality": "seed_needs_args_review", "message": "Update my comment on ENG-104", "expected_tool": "comment_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-comment_update-2", "quality": "seed_needs_args_review", "message": "Edit comment text", "expected_tool": "comment_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-comment_update-3", "quality": "seed_needs_args_review", "message": "Fix typo in my comment", "expected_tool": "comment_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-comment_delete-1", "quality": "seed_needs_args_review", "message": "Delete my comment on ENG-104", "expected_tool": "comment_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-comment_delete-2", "quality": "seed_needs_args_review", "message": "Remove comment", "expected_tool": "comment_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-comment_delete-3", "quality": "seed_needs_args_review", "message": "Delete reply", "expected_tool": "comment_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-issue_ai_summary_request-1", "quality": "seed_needs_args_review", "message": "Summarize ticket ENG-104 using AI", "expected_tool": "issue_ai_summary_request", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-issue_ai_summary_request-2", "quality": "seed_needs_args_review", "message": "Generate AI summary for this issue", "expected_tool": "issue_ai_summary_request", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-issue_ai_summary_request-3", "quality": "seed_needs_args_review", "message": "Ask AI to summarize the comment history", "expected_tool": "issue_ai_summary_request", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-issue_ai_job_get-1", "quality": "seed_needs_args_review", "message": "Check AI summary job status", "expected_tool": "issue_ai_job_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_ai_job_get-2", "quality": "seed_needs_args_review", "message": "Has the AI summary completed?", "expected_tool": "issue_ai_job_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_ai_job_get-3", "quality": "seed_needs_args_review", "message": "Get AI job result", "expected_tool": "issue_ai_job_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-dependency_list-1", "quality": "seed_needs_args_review", "message": "What is blocking ticket ENG-104?", "expected_tool": "dependency_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-dependency_list-2", "quality": "seed_needs_args_review", "message": "Show dependencies for ENG-104", "expected_tool": "dependency_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-dependency_list-3", "quality": "seed_needs_args_review", "message": "List blockers of this task", "expected_tool": "dependency_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-dependency_create-1", "quality": "seed_needs_args_review", "message": "Make ENG-104 block ENG-109", "expected_tool": "dependency_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-dependency_create-2", "quality": "seed_needs_args_review", "message": "Link ENG-104 as duplicate of ENG-80", "expected_tool": "dependency_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-dependency_create-3", "quality": "seed_needs_args_review", "message": "Set ENG-104 blocked by ENG-99", "expected_tool": "dependency_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-dependency_delete-1", "quality": "seed_needs_args_review", "message": "Unlink dependency on ENG-99", "expected_tool": "dependency_delete", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-dependency_delete-2", "quality": "seed_needs_args_review", "message": "Remove blocker from ENG-104", "expected_tool": "dependency_delete", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-dependency_delete-3", "quality": "seed_needs_args_review", "message": "Delete issue link", "expected_tool": "dependency_delete", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-sprint_list-1", "quality": "seed_needs_args_review", "message": "List all sprints in Mobile space", "expected_tool": "sprint_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-sprint_list-2", "quality": "seed_needs_args_review", "message": "Show active and planned sprints", "expected_tool": "sprint_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-sprint_list-3", "quality": "seed_needs_args_review", "message": "What sprints do we have?", "expected_tool": "sprint_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-sprint_create-1", "quality": "seed_needs_args_review", "message": "Create Sprint 5 starting next Monday", "expected_tool": "sprint_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-sprint_create-2", "quality": "seed_needs_args_review", "message": "Add new planned sprint Sprint 14", "expected_tool": "sprint_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-sprint_create-3", "quality": "seed_needs_args_review", "message": "Create a 2-week sprint with goal Launch Beta", "expected_tool": "sprint_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-sprint_get-1", "quality": "seed_needs_args_review", "message": "Get details of Sprint 4", "expected_tool": "sprint_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-sprint_get-2", "quality": "seed_needs_args_review", "message": "Show sprint info", "expected_tool": "sprint_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-sprint_get-3", "quality": "seed_needs_args_review", "message": "Inspect sprint configuration", "expected_tool": "sprint_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-sprint_update-1", "quality": "seed_needs_args_review", "message": "Update goal of Sprint 4 to Harden API", "expected_tool": "sprint_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-sprint_update-2", "quality": "seed_needs_args_review", "message": "Extend sprint end date by 3 days", "expected_tool": "sprint_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-sprint_update-3", "quality": "seed_needs_args_review", "message": "Rename Sprint 4", "expected_tool": "sprint_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-sprint_delete-1", "quality": "seed_needs_args_review", "message": "Delete planned Sprint 5", "expected_tool": "sprint_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-sprint_delete-2", "quality": "seed_needs_args_review", "message": "Remove empty sprint", "expected_tool": "sprint_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-sprint_delete-3", "quality": "seed_needs_args_review", "message": "Delete this sprint", "expected_tool": "sprint_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-sprint_start-1", "quality": "seed_needs_args_review", "message": "Start Sprint 4", "expected_tool": "sprint_start", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-sprint_start-2", "quality": "seed_needs_args_review", "message": "Launch Sprint 4 now", "expected_tool": "sprint_start", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-sprint_start-3", "quality": "seed_needs_args_review", "message": "Activate this sprint", "expected_tool": "sprint_start", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-sprint_close-1", "quality": "seed_needs_args_review", "message": "Close Sprint 4 and roll unfinished tasks to Sprint 5", "expected_tool": "sprint_close", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-sprint_close-2", "quality": "seed_needs_args_review", "message": "Complete Sprint 4", "expected_tool": "sprint_close", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-sprint_close-3", "quality": "seed_needs_args_review", "message": "Finish current sprint", "expected_tool": "sprint_close", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-sprint_issues_list-1", "quality": "seed_needs_args_review", "message": "Show issues in Sprint 4", "expected_tool": "sprint_issues_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-sprint_issues_list-2", "quality": "seed_needs_args_review", "message": "What tickets are in Sprint 4?", "expected_tool": "sprint_issues_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-sprint_issues_list-3", "quality": "seed_needs_args_review", "message": "List sprint scope", "expected_tool": "sprint_issues_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-sprint_issues_add-1", "quality": "seed_needs_args_review", "message": "Add ENG-104 and ENG-105 to Sprint 4", "expected_tool": "sprint_issues_add", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-sprint_issues_add-2", "quality": "seed_needs_args_review", "message": "Assign issue to current sprint", "expected_tool": "sprint_issues_add", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-sprint_issues_add-3", "quality": "seed_needs_args_review", "message": "Move tickets into sprint", "expected_tool": "sprint_issues_add", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-sprint_issues_remove-1", "quality": "seed_needs_args_review", "message": "Remove ENG-104 from Sprint 4", "expected_tool": "sprint_issues_remove", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-sprint_issues_remove-2", "quality": "seed_needs_args_review", "message": "Move issue out of sprint back to backlog", "expected_tool": "sprint_issues_remove", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-sprint_issues_remove-3", "quality": "seed_needs_args_review", "message": "Drop ticket from sprint", "expected_tool": "sprint_issues_remove", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-sprint_report_get-1", "quality": "seed_needs_args_review", "message": "Get sprint report for Sprint 4", "expected_tool": "sprint_report_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-sprint_report_get-2", "quality": "seed_needs_args_review", "message": "Show sprint recap", "expected_tool": "sprint_report_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-sprint_report_get-3", "quality": "seed_needs_args_review", "message": "View sprint performance report", "expected_tool": "sprint_report_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-sprint_burndown_get-1", "quality": "seed_needs_args_review", "message": "Show burndown chart for Sprint 4", "expected_tool": "sprint_burndown_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-sprint_burndown_get-2", "quality": "seed_needs_args_review", "message": "Get burndown data", "expected_tool": "sprint_burndown_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-sprint_burndown_get-3", "quality": "seed_needs_args_review", "message": "How is our sprint burndown tracking?", "expected_tool": "sprint_burndown_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-space_velocity_get-1", "quality": "seed_needs_args_review", "message": "What is our team velocity?", "expected_tool": "space_velocity_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-space_velocity_get-2", "quality": "seed_needs_args_review", "message": "Show space velocity chart", "expected_tool": "space_velocity_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-space_velocity_get-3", "quality": "seed_needs_args_review", "message": "Get velocity report for Mobile", "expected_tool": "space_velocity_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-space_cfd_get-1", "quality": "seed_needs_args_review", "message": "Show cumulative flow diagram", "expected_tool": "space_cfd_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-space_cfd_get-2", "quality": "seed_needs_args_review", "message": "Get CFD report for space", "expected_tool": "space_cfd_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-space_cfd_get-3", "quality": "seed_needs_args_review", "message": "View cumulative flow metrics", "expected_tool": "space_cfd_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-space_cycle_time_get-1", "quality": "seed_needs_args_review", "message": "Show cycle time metrics", "expected_tool": "space_cycle_time_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-space_cycle_time_get-2", "quality": "seed_needs_args_review", "message": "What is our average lead time?", "expected_tool": "space_cycle_time_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-space_cycle_time_get-3", "quality": "seed_needs_args_review", "message": "Get cycle time analysis", "expected_tool": "space_cycle_time_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-release_list-1", "quality": "seed_needs_args_review", "message": "List all releases", "expected_tool": "release_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-release_list-2", "quality": "seed_needs_args_review", "message": "Show version releases for Web", "expected_tool": "release_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-release_list-3", "quality": "seed_needs_args_review", "message": "What releases are upcoming?", "expected_tool": "release_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-release_create-1", "quality": "seed_needs_args_review", "message": "Create release v1.4.0 with target date Nov 15", "expected_tool": "release_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-release_create-2", "quality": "seed_needs_args_review", "message": "Add release version 2.0", "expected_tool": "release_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-release_create-3", "quality": "seed_needs_args_review", "message": "New release milestone", "expected_tool": "release_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-release_get-1", "quality": "seed_needs_args_review", "message": "Get details for release v1.4.0", "expected_tool": "release_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-release_get-2", "quality": "seed_needs_args_review", "message": "Show release status", "expected_tool": "release_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-release_get-3", "quality": "seed_needs_args_review", "message": "Inspect release info", "expected_tool": "release_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-release_update-1", "quality": "seed_needs_args_review", "message": "Change target date for release v1.4.0", "expected_tool": "release_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-release_update-2", "quality": "seed_needs_args_review", "message": "Update release name", "expected_tool": "release_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-release_update-3", "quality": "seed_needs_args_review", "message": "Edit version notes", "expected_tool": "release_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-release_delete-1", "quality": "seed_needs_args_review", "message": "Delete release v1.4.0", "expected_tool": "release_delete", "expected_tier": "T3", "exposure": "enabled"}
+{"id": "SEED-release_delete-2", "quality": "seed_needs_args_review", "message": "Remove version milestone", "expected_tool": "release_delete", "expected_tier": "T3", "exposure": "enabled"}
+{"id": "SEED-release_delete-3", "quality": "seed_needs_args_review", "message": "Delete release", "expected_tool": "release_delete", "expected_tier": "T3", "exposure": "enabled"}
+{"id": "SEED-release_ship-1", "quality": "seed_needs_args_review", "message": "Ship release v1.4.0 today", "expected_tool": "release_ship", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-release_ship-2", "quality": "seed_needs_args_review", "message": "Mark version v1.4.0 as released", "expected_tool": "release_ship", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-release_ship-3", "quality": "seed_needs_args_review", "message": "Publish release", "expected_tool": "release_ship", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-release_notes_get-1", "quality": "seed_needs_args_review", "message": "Generate release notes for v1.4.0", "expected_tool": "release_notes_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-release_notes_get-2", "quality": "seed_needs_args_review", "message": "Get change log for release", "expected_tool": "release_notes_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-release_notes_get-3", "quality": "seed_needs_args_review", "message": "Export release notes", "expected_tool": "release_notes_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-release_fix_versions_list-1", "quality": "seed_needs_args_review", "message": "What release versions is ENG-104 scheduled for?", "expected_tool": "release_fix_versions_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-release_fix_versions_list-2", "quality": "seed_needs_args_review", "message": "Show fix versions for ticket", "expected_tool": "release_fix_versions_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-release_fix_versions_list-3", "quality": "seed_needs_args_review", "message": "List fix versions", "expected_tool": "release_fix_versions_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-release_fix_versions_set-1", "quality": "seed_needs_args_review", "message": "Set fix version of ENG-104 to v1.4.0", "expected_tool": "release_fix_versions_set", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-release_fix_versions_set-2", "quality": "seed_needs_args_review", "message": "Tag ticket with release v1.4.0", "expected_tool": "release_fix_versions_set", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-release_fix_versions_set-3", "quality": "seed_needs_args_review", "message": "Update fix versions", "expected_tool": "release_fix_versions_set", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-saved_view_list-1", "quality": "seed_needs_args_review", "message": "List my saved views", "expected_tool": "saved_view_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-saved_view_list-2", "quality": "seed_needs_args_review", "message": "Show saved filters", "expected_tool": "saved_view_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-saved_view_list-3", "quality": "seed_needs_args_review", "message": "Get custom views", "expected_tool": "saved_view_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-saved_view_create-1", "quality": "seed_needs_args_review", "message": "Save current filter as view My Urgent Bugs", "expected_tool": "saved_view_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-saved_view_create-2", "quality": "seed_needs_args_review", "message": "Create saved view High Priority Stories", "expected_tool": "saved_view_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-saved_view_create-3", "quality": "seed_needs_args_review", "message": "Save view", "expected_tool": "saved_view_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-saved_view_get-1", "quality": "seed_needs_args_review", "message": "Load view My Urgent Bugs", "expected_tool": "saved_view_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-saved_view_get-2", "quality": "seed_needs_args_review", "message": "Get saved view configuration", "expected_tool": "saved_view_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-saved_view_get-3", "quality": "seed_needs_args_review", "message": "Open view", "expected_tool": "saved_view_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-saved_view_update-1", "quality": "seed_needs_args_review", "message": "Update filters for My Urgent Bugs", "expected_tool": "saved_view_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-saved_view_update-2", "quality": "seed_needs_args_review", "message": "Rename saved view to Critical Issues", "expected_tool": "saved_view_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-saved_view_update-3", "quality": "seed_needs_args_review", "message": "Share view with workspace", "expected_tool": "saved_view_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-saved_view_delete-1", "quality": "seed_needs_args_review", "message": "Delete saved view My Urgent Bugs", "expected_tool": "saved_view_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-saved_view_delete-2", "quality": "seed_needs_args_review", "message": "Remove view preset", "expected_tool": "saved_view_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-saved_view_delete-3", "quality": "seed_needs_args_review", "message": "Delete view", "expected_tool": "saved_view_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-time_tracking_issue_get-1", "quality": "seed_needs_args_review", "message": "How much time has been logged on ENG-104?", "expected_tool": "time_tracking_issue_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-time_tracking_issue_get-2", "quality": "seed_needs_args_review", "message": "Show time logged on ticket", "expected_tool": "time_tracking_issue_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-time_tracking_issue_get-3", "quality": "seed_needs_args_review", "message": "Get issue time tracking summary", "expected_tool": "time_tracking_issue_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-time_entry_create-1", "quality": "seed_needs_args_review", "message": "Log 2 hours on ENG-104 for code review", "expected_tool": "time_entry_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-time_entry_create-2", "quality": "seed_needs_args_review", "message": "Log 45 minutes on this task", "expected_tool": "time_entry_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-time_entry_create-3", "quality": "seed_needs_args_review", "message": "Record 3.5 hours worked on bug fix", "expected_tool": "time_entry_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-time_entry_update-1", "quality": "seed_needs_args_review", "message": "Change logged time to 3 hours", "expected_tool": "time_entry_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-time_entry_update-2", "quality": "seed_needs_args_review", "message": "Update description on my time log", "expected_tool": "time_entry_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-time_entry_update-3", "quality": "seed_needs_args_review", "message": "Correct time entry duration", "expected_tool": "time_entry_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-time_entry_delete-1", "quality": "seed_needs_args_review", "message": "Delete time entry for yesterday", "expected_tool": "time_entry_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-time_entry_delete-2", "quality": "seed_needs_args_review", "message": "Remove logged time", "expected_tool": "time_entry_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-time_entry_delete-3", "quality": "seed_needs_args_review", "message": "Delete worklog", "expected_tool": "time_entry_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-time_entries_list-1", "quality": "seed_needs_args_review", "message": "Show all time logged this week", "expected_tool": "time_entries_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-time_entries_list-2", "quality": "seed_needs_args_review", "message": "List time entries for Alex", "expected_tool": "time_entries_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-time_entries_list-3", "quality": "seed_needs_args_review", "message": "Export my timesheet entries", "expected_tool": "time_entries_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-time_report_get-1", "quality": "seed_needs_args_review", "message": "Get timesheet report for last month", "expected_tool": "time_report_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-time_report_get-2", "quality": "seed_needs_args_review", "message": "Show billable hours report", "expected_tool": "time_report_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-time_report_get-3", "quality": "seed_needs_args_review", "message": "Generate team time report", "expected_tool": "time_report_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-timer_start-1", "quality": "seed_needs_args_review", "message": "Start timer on ENG-104", "expected_tool": "timer_start", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-timer_start-2", "quality": "seed_needs_args_review", "message": "Start tracking time on this task", "expected_tool": "timer_start", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-timer_start-3", "quality": "seed_needs_args_review", "message": "Start stopwatch on ticket", "expected_tool": "timer_start", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-timer_get-1", "quality": "seed_needs_args_review", "message": "Is my timer running?", "expected_tool": "timer_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-timer_get-2", "quality": "seed_needs_args_review", "message": "Get active timer status", "expected_tool": "timer_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-timer_get-3", "quality": "seed_needs_args_review", "message": "Show my current stopwatch", "expected_tool": "timer_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-timer_stop-1", "quality": "seed_needs_args_review", "message": "Stop my timer and save 1.5 hours", "expected_tool": "timer_stop", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-timer_stop-2", "quality": "seed_needs_args_review", "message": "Stop time tracking", "expected_tool": "timer_stop", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-timer_stop-3", "quality": "seed_needs_args_review", "message": "Finish timer on current ticket", "expected_tool": "timer_stop", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-timer_discard-1", "quality": "seed_needs_args_review", "message": "Discard current timer", "expected_tool": "timer_discard", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-timer_discard-2", "quality": "seed_needs_args_review", "message": "Cancel timer without saving", "expected_tool": "timer_discard", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-timer_discard-3", "quality": "seed_needs_args_review", "message": "Throw away running timer", "expected_tool": "timer_discard", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-time_tracking_settings_get-1", "quality": "seed_needs_args_review", "message": "Get time tracking settings", "expected_tool": "time_tracking_settings_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-time_tracking_settings_get-2", "quality": "seed_needs_args_review", "message": "Show timesheet locking rules", "expected_tool": "time_tracking_settings_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-time_tracking_settings_get-3", "quality": "seed_needs_args_review", "message": "Check time policy", "expected_tool": "time_tracking_settings_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-time_tracking_settings_update-1", "quality": "seed_needs_args_review", "message": "Lock timesheets older than 7 days", "expected_tool": "time_tracking_settings_update", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-time_tracking_settings_update-2", "quality": "seed_needs_args_review", "message": "Require descriptions on all time logs", "expected_tool": "time_tracking_settings_update", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-time_tracking_settings_update-3", "quality": "seed_needs_args_review", "message": "Update time tracking settings", "expected_tool": "time_tracking_settings_update", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workflow_get-1", "quality": "seed_needs_args_review", "message": "Show workflow for space Mobile", "expected_tool": "workflow_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workflow_get-2", "quality": "seed_needs_args_review", "message": "Get workflow stages", "expected_tool": "workflow_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workflow_get-3", "quality": "seed_needs_args_review", "message": "Inspect workflow schema", "expected_tool": "workflow_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workflow_preview-1", "quality": "seed_needs_args_review", "message": "Preview workflow changes", "expected_tool": "workflow_preview", "expected_tier": "T0", "exposure": "guided"}
+{"id": "SEED-workflow_preview-2", "quality": "seed_needs_args_review", "message": "Check impact of deleting stage In Review", "expected_tool": "workflow_preview", "expected_tier": "T0", "exposure": "guided"}
+{"id": "SEED-workflow_preview-3", "quality": "seed_needs_args_review", "message": "Simulate workflow migration", "expected_tool": "workflow_preview", "expected_tier": "T0", "exposure": "guided"}
+{"id": "SEED-workflow_publish-1", "quality": "seed_needs_args_review", "message": "Publish new workflow", "expected_tool": "workflow_publish", "expected_tier": "T2", "exposure": "guided"}
+{"id": "SEED-workflow_publish-2", "quality": "seed_needs_args_review", "message": "Save workflow changes and migrate tickets", "expected_tool": "workflow_publish", "expected_tier": "T2", "exposure": "guided"}
+{"id": "SEED-workflow_publish-3", "quality": "seed_needs_args_review", "message": "Deploy updated workflow", "expected_tool": "workflow_publish", "expected_tier": "T2", "exposure": "guided"}
+{"id": "SEED-workflow_templates_list-1", "quality": "seed_needs_args_review", "message": "Show workflow templates", "expected_tool": "workflow_templates_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workflow_templates_list-2", "quality": "seed_needs_args_review", "message": "List available workflow presets", "expected_tool": "workflow_templates_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workflow_templates_list-3", "quality": "seed_needs_args_review", "message": "Get workflow starter templates", "expected_tool": "workflow_templates_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workflow_template_create-1", "quality": "seed_needs_args_review", "message": "Save current workflow as template Agile Enterprise", "expected_tool": "workflow_template_create", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workflow_template_create-2", "quality": "seed_needs_args_review", "message": "Create workflow template", "expected_tool": "workflow_template_create", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workflow_template_create-3", "quality": "seed_needs_args_review", "message": "Add reusable workflow", "expected_tool": "workflow_template_create", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workflow_template_delete-1", "quality": "seed_needs_args_review", "message": "Delete workflow template Agile Enterprise", "expected_tool": "workflow_template_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workflow_template_delete-2", "quality": "seed_needs_args_review", "message": "Remove workflow preset", "expected_tool": "workflow_template_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workflow_template_delete-3", "quality": "seed_needs_args_review", "message": "Delete template", "expected_tool": "workflow_template_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workflow_editors_list-1", "quality": "seed_needs_args_review", "message": "Who can edit workflows?", "expected_tool": "workflow_editors_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workflow_editors_list-2", "quality": "seed_needs_args_review", "message": "Show workflow editors", "expected_tool": "workflow_editors_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workflow_editors_list-3", "quality": "seed_needs_args_review", "message": "List authorized workflow editors", "expected_tool": "workflow_editors_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-workflow_editors_set-1", "quality": "seed_needs_args_review", "message": "Grant Sarah permission to edit workflows", "expected_tool": "workflow_editors_set", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workflow_editors_set-2", "quality": "seed_needs_args_review", "message": "Update workflow editor list", "expected_tool": "workflow_editors_set", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-workflow_editors_set-3", "quality": "seed_needs_args_review", "message": "Set workflow editors", "expected_tool": "workflow_editors_set", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-report_catalog_get-1", "quality": "seed_needs_args_review", "message": "What reports are available?", "expected_tool": "report_catalog_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-report_catalog_get-2", "quality": "seed_needs_args_review", "message": "Show report catalog", "expected_tool": "report_catalog_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-report_catalog_get-3", "quality": "seed_needs_args_review", "message": "List report types", "expected_tool": "report_catalog_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-report_run-1", "quality": "seed_needs_args_review", "message": "Run issue distribution report for Q3", "expected_tool": "report_run", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-report_run-2", "quality": "seed_needs_args_review", "message": "Generate throughput analysis", "expected_tool": "report_run", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-report_run-3", "quality": "seed_needs_args_review", "message": "Execute velocity report", "expected_tool": "report_run", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-report_export-1", "quality": "seed_needs_args_review", "message": "Export this report to CSV", "expected_tool": "report_export", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-report_export-2", "quality": "seed_needs_args_review", "message": "Download report as PDF", "expected_tool": "report_export", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-report_export-3", "quality": "seed_needs_args_review", "message": "Export report data", "expected_tool": "report_export", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-report_jobs_list-1", "quality": "seed_needs_args_review", "message": "Show report jobs", "expected_tool": "report_jobs_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-report_jobs_list-2", "quality": "seed_needs_args_review", "message": "List recent report exports", "expected_tool": "report_jobs_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-report_jobs_list-3", "quality": "seed_needs_args_review", "message": "Check my export queue", "expected_tool": "report_jobs_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-report_job_get-1", "quality": "seed_needs_args_review", "message": "Check status of report job 88", "expected_tool": "report_job_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-report_job_get-2", "quality": "seed_needs_args_review", "message": "Is my PDF export ready?", "expected_tool": "report_job_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-report_job_get-3", "quality": "seed_needs_args_review", "message": "Get job progress", "expected_tool": "report_job_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-report_job_download-1", "quality": "seed_needs_args_review", "message": "Download exported report", "expected_tool": "report_job_download", "expected_tier": "T0", "exposure": "guided"}
+{"id": "SEED-report_job_download-2", "quality": "seed_needs_args_review", "message": "Get file for report job", "expected_tool": "report_job_download", "expected_tier": "T0", "exposure": "guided"}
+{"id": "SEED-report_job_download-3", "quality": "seed_needs_args_review", "message": "Download CSV export", "expected_tool": "report_job_download", "expected_tier": "T0", "exposure": "guided"}
+{"id": "SEED-saved_reports_list-1", "quality": "seed_needs_args_review", "message": "List saved reports", "expected_tool": "saved_reports_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-saved_reports_list-2", "quality": "seed_needs_args_review", "message": "Show custom reports", "expected_tool": "saved_reports_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-saved_reports_list-3", "quality": "seed_needs_args_review", "message": "Get saved analytics reports", "expected_tool": "saved_reports_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-saved_report_create-1", "quality": "seed_needs_args_review", "message": "Save this report as Monthly Engineering Throughput", "expected_tool": "saved_report_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-saved_report_create-2", "quality": "seed_needs_args_review", "message": "Create saved report", "expected_tool": "saved_report_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-saved_report_create-3", "quality": "seed_needs_args_review", "message": "Bookmark report configuration", "expected_tool": "saved_report_create", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-saved_report_get-1", "quality": "seed_needs_args_review", "message": "Open saved report Monthly Throughput", "expected_tool": "saved_report_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-saved_report_get-2", "quality": "seed_needs_args_review", "message": "Load saved report", "expected_tool": "saved_report_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-saved_report_get-3", "quality": "seed_needs_args_review", "message": "Run saved report", "expected_tool": "saved_report_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-saved_report_update-1", "quality": "seed_needs_args_review", "message": "Rename saved report to Q4 Throughput", "expected_tool": "saved_report_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-saved_report_update-2", "quality": "seed_needs_args_review", "message": "Update saved report filters", "expected_tool": "saved_report_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-saved_report_update-3", "quality": "seed_needs_args_review", "message": "Edit saved report", "expected_tool": "saved_report_update", "expected_tier": "T1", "exposure": "enabled"}
+{"id": "SEED-saved_report_delete-1", "quality": "seed_needs_args_review", "message": "Delete saved report Monthly Throughput", "expected_tool": "saved_report_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-saved_report_delete-2", "quality": "seed_needs_args_review", "message": "Remove report bookmark", "expected_tool": "saved_report_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-saved_report_delete-3", "quality": "seed_needs_args_review", "message": "Delete report", "expected_tool": "saved_report_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-report_schedules_list-1", "quality": "seed_needs_args_review", "message": "Show automated report schedules", "expected_tool": "report_schedules_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-report_schedules_list-2", "quality": "seed_needs_args_review", "message": "List scheduled reports", "expected_tool": "report_schedules_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-report_schedules_list-3", "quality": "seed_needs_args_review", "message": "What reports are emailed automatically?", "expected_tool": "report_schedules_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-report_schedule_create-1", "quality": "seed_needs_args_review", "message": "Email Sprint Report to leadership every Monday at 9 AM", "expected_tool": "report_schedule_create", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-report_schedule_create-2", "quality": "seed_needs_args_review", "message": "Create report schedule for weekly velocity", "expected_tool": "report_schedule_create", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-report_schedule_create-3", "quality": "seed_needs_args_review", "message": "Schedule report delivery", "expected_tool": "report_schedule_create", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-report_schedule_update-1", "quality": "seed_needs_args_review", "message": "Pause report schedule Weekly Velocity", "expected_tool": "report_schedule_update", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-report_schedule_update-2", "quality": "seed_needs_args_review", "message": "Add bob@example.com to report schedule recipients", "expected_tool": "report_schedule_update", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-report_schedule_update-3", "quality": "seed_needs_args_review", "message": "Change schedule cron time", "expected_tool": "report_schedule_update", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-report_schedule_delete-1", "quality": "seed_needs_args_review", "message": "Delete report schedule Weekly Velocity", "expected_tool": "report_schedule_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-report_schedule_delete-2", "quality": "seed_needs_args_review", "message": "Remove automated report schedule", "expected_tool": "report_schedule_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-report_schedule_delete-3", "quality": "seed_needs_args_review", "message": "Delete schedule", "expected_tool": "report_schedule_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-report_schedule_run_now-1", "quality": "seed_needs_args_review", "message": "Run report schedule right now", "expected_tool": "report_schedule_run_now", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-report_schedule_run_now-2", "quality": "seed_needs_args_review", "message": "Trigger schedule execution immediately", "expected_tool": "report_schedule_run_now", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-report_schedule_run_now-3", "quality": "seed_needs_args_review", "message": "Send report schedule now", "expected_tool": "report_schedule_run_now", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-reports_settings_get-1", "quality": "seed_needs_args_review", "message": "Get reports configuration", "expected_tool": "reports_settings_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-reports_settings_get-2", "quality": "seed_needs_args_review", "message": "Show report retention settings", "expected_tool": "reports_settings_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-reports_settings_get-3", "quality": "seed_needs_args_review", "message": "Check reporting settings", "expected_tool": "reports_settings_get", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-reports_settings_update-1", "quality": "seed_needs_args_review", "message": "Increase report export row limit to 50000", "expected_tool": "reports_settings_update", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-reports_settings_update-2", "quality": "seed_needs_args_review", "message": "Update report retention to 90 days", "expected_tool": "reports_settings_update", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-reports_settings_update-3", "quality": "seed_needs_args_review", "message": "Change report settings", "expected_tool": "reports_settings_update", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-issue_attachments_list-1", "quality": "seed_needs_args_review", "message": "Show files attached to ENG-104", "expected_tool": "issue_attachments_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_attachments_list-2", "quality": "seed_needs_args_review", "message": "List attachments for ticket", "expected_tool": "issue_attachments_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_attachments_list-3", "quality": "seed_needs_args_review", "message": "What files are uploaded?", "expected_tool": "issue_attachments_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-issue_attachment_upload-1", "quality": "seed_needs_args_review", "message": "Upload error screenshot to ENG-104", "expected_tool": "issue_attachment_upload", "expected_tier": "T1", "exposure": "guided"}
+{"id": "SEED-issue_attachment_upload-2", "quality": "seed_needs_args_review", "message": "Attach log file to ticket", "expected_tool": "issue_attachment_upload", "expected_tier": "T1", "exposure": "guided"}
+{"id": "SEED-issue_attachment_upload-3", "quality": "seed_needs_args_review", "message": "Upload file attachment", "expected_tool": "issue_attachment_upload", "expected_tier": "T1", "exposure": "guided"}
+{"id": "SEED-issue_attachment_download-1", "quality": "seed_needs_args_review", "message": "Download attachment from ENG-104", "expected_tool": "issue_attachment_download", "expected_tier": "T0", "exposure": "guided"}
+{"id": "SEED-issue_attachment_download-2", "quality": "seed_needs_args_review", "message": "Open screenshot attachment", "expected_tool": "issue_attachment_download", "expected_tier": "T0", "exposure": "guided"}
+{"id": "SEED-issue_attachment_download-3", "quality": "seed_needs_args_review", "message": "Download file", "expected_tool": "issue_attachment_download", "expected_tier": "T0", "exposure": "guided"}
+{"id": "SEED-issue_attachment_delete-1", "quality": "seed_needs_args_review", "message": "Delete attachment from ENG-104", "expected_tool": "issue_attachment_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-issue_attachment_delete-2", "quality": "seed_needs_args_review", "message": "Remove uploaded screenshot", "expected_tool": "issue_attachment_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-issue_attachment_delete-3", "quality": "seed_needs_args_review", "message": "Delete file", "expected_tool": "issue_attachment_delete", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-github_repositories_list-1", "quality": "seed_needs_args_review", "message": "Show linked GitHub repos", "expected_tool": "github_repositories_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-github_repositories_list-2", "quality": "seed_needs_args_review", "message": "List connected repositories", "expected_tool": "github_repositories_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-github_repositories_list-3", "quality": "seed_needs_args_review", "message": "Which git repositories are integrated?", "expected_tool": "github_repositories_list", "expected_tier": "T0", "exposure": "enabled"}
+{"id": "SEED-github_repository_link-1", "quality": "seed_needs_args_review", "message": "Link GitHub repo acme/backend", "expected_tool": "github_repository_link", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-github_repository_link-2", "quality": "seed_needs_args_review", "message": "Connect git repository to workspace", "expected_tool": "github_repository_link", "expected_tier": "T2", "exposure": "enabled"}
+{"id": "SEED-github_repository_link-3", "quality": "seed_needs_args_review", "message": "Integrate GitHub repo", "expected_tool": "github_repository_link", "expected_tier": "T2", "exposure": "enabled"}

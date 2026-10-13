@@ -1,0 +1,24 @@
+{
+  "name": "storage_download_file",
+  "description": "Download or retrieve content of a stored file from cloud storage (AWS S3 / Azure Blob Storage) or local filesystem.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "storage_path": {
+        "type": "string",
+        "description": "Relative storage path or cloud object key"
+      },
+      "provider": {
+        "type": "string",
+        "enum": ["local", "aws_s3", "azure_blob"],
+        "description": "Storage provider where the file is stored"
+      },
+      "config": {
+        "type": "object",
+        "description": "Optional provider credentials override"
+      }
+    },
+    "required": ["storage_path", "provider"],
+    "additionalProperties": false
+  }
+}

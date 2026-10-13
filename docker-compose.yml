@@ -1,0 +1,233 @@
+# The whole stack: MySQL, the API, and the SPA behind nginx.
+#
+# `scripts/bootstrap.sh` is the intended entry point — it writes the .env this file reads
+# and makes sure the SPA repo is present. Running `docker compose up` directly works too,
+# once those two things are true.
+#
+# NOTE ON THE SPA BUILD CONTEXT. The app is a separate repository, so this file builds it
+# from a sibling directory (`../pmt-app`). That is unusual, and it is a
+# consequence of the project living in two repos with no parent: something has to own the
+# compose file, and the API is the half that owns the database and the migrations. The
+# bootstrap script clones the sibling if it is missing. If you would rather not build the
+# SPA at all, run `docker compose up db api` and use `npm run dev` for the frontend.
+
+# The project name is what every container, network and volume is prefixed with, so it is
+# also what decides *which* database a stack talks to. Interpolated rather than fixed
+# because bootstrap.sh needs one escape hatch: a db-data volume whose password this
+# checkout no longer knows cannot be recovered, and building a second stack beside it is
+# the only repair that does not delete somebody's data. See scripts/lib/run_docker.sh.
+name: ${COMPOSE_PROJECT_NAME:-base-project}
+
+services:
+  db:
+    # Overridable only so setup can react to a tag with no image for the local
+    # architecture. MySQL 8.0 publishes amd64 and arm64, so this is a backstop, not a knob:
+    # point it at something that is not MySQL and the migrations are on their own.
+    image: ${MYSQL_IMAGE:-mysql:8.0}
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-base_project}
+      MYSQL_USER: ${MYSQL_USER:-base_project}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+    # utf8mb4 all the way down: user names and free text are not ASCII, and MySQL's
+    # older default silently mangles anything outside the BMP — including most emoji.
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db-data:/var/lib/mysql
+    ports:
+      # Exposed so you can point a client at it. Loopback-only on purpose — binding
+      # 0.0.0.0 would publish the database to the local network.
+      - "127.0.0.1:${MYSQL_PORT:-3307}:3306"
+    healthcheck:
+      # --silent so the credentials never reach the log. `api` waits on this, which is what
+      # stops it racing the ~20s MySQL takes to initialise a fresh data directory.
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  api:
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # PyMySQL, the pure-Python driver: no C client library in the image, and one moving
+      # part fewer in the container's startup path.
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-base_project}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-base_project}
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env — bootstrap.sh generates one}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # The SPA is served same-origin through nginx, so the browser never issues a
+      # cross-origin request in this setup. Listed anyway for anyone running `npm run dev`
+      # against these containers.
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:8080}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+      APP_NAME: ${APP_NAME:-PMT}
+
+      # --- auth ------------------------------------------------------------------------
+      # Forwarded, not merely documented. compose passes only what this block names, so a
+      # setting that appears in .env.example and not here reads as tunable and is not —
+      # and these are the password policy and the lockout window, which is the worst
+      # possible set to be silently pinned to their defaults.
+      # `tests/unit/test_settings_delivery.py` is what keeps the three files in step.
+      ALGORITHM: ${ALGORITHM:-HS256}
+      JWT_EXPIRY_VALUE: ${JWT_EXPIRY_VALUE:-1}
+      REFRESH_TOKEN_EXPIRY_DAYS: ${REFRESH_TOKEN_EXPIRY_DAYS:-30}
+      AUTH_MAX_FAILED_LOGIN_ATTEMPTS: ${AUTH_MAX_FAILED_LOGIN_ATTEMPTS:-5}
+      AUTH_LOCKOUT_MINUTES: ${AUTH_LOCKOUT_MINUTES:-15}
+      PASSWORD_MIN_LENGTH: ${PASSWORD_MIN_LENGTH:-12}
+
+      # --- inbound rate limiting -------------------------------------------------------
+      # These have to be here, not only in .env.example: compose passes only what this
+      # block names, so four settings the documentation told operators to tune were inert
+      # on the one install path this project actually ships.
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      RATE_LIMIT_CREDENTIAL_PER_MINUTE: ${RATE_LIMIT_CREDENTIAL_PER_MINUTE:-10}
+      RATE_LIMIT_GENERAL_PER_MINUTE: ${RATE_LIMIT_GENERAL_PER_MINUTE:-300}
+      #
+      # NOT optional in this topology, and the default is not empty for a reason.
+      #
+      # nginx in the `app` container proxies /api/ to this service and is the only thing
+      # exposed to a browser, so without this every request arrives from the nginx
+      # container's address — one rate-limit bucket for every client, in which any
+      # unauthenticated client can exhaust the login budget for every user at once.
+      #
+      # The value is the RFC 1918 space the compose bridge network allocates from. The only
+      # things on that network are the containers defined in this file, so "trust a peer in
+      # this range" means "trust nginx". A deployment that puts this service on a shared
+      # network must narrow it to the proxy's own address.
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-172.16.0.0/12,192.168.0.0/16,10.0.0.0/8}
+      MAX_REQUEST_BODY_BYTES: ${MAX_REQUEST_BODY_BYTES:-4194304}
+
+      # --- database pool ---------------------------------------------------------------
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-20}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-20}
+      DB_POOL_RECYCLE_SECONDS: ${DB_POOL_RECYCLE_SECONDS:-1800}
+
+      # --- logging ---------------------------------------------------------------------
+      # Literal values to mask in every log line, on top of the generic credential shapes
+      # core/redact.py already recognises. Comma-separated; empty is the normal case.
+      LOG_EXTRA_SECRETS: ${LOG_EXTRA_SECRETS:-}
+
+      # --- outbound email --------------------------------------------------------------
+      # Read by integrations/aws_ses.py rather than core/config.py, so the settings test
+      # does not see them — forwarded anyway, because without them every invite, password
+      # reset and OTP mail on this install path is only logged, never sent. An SMTP relay
+      # on the host is `host.docker.internal`, not `localhost` (that is this container).
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-PMT}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+
+      # --- first-run seed --------------------------------------------------------------
+      # Optional. Present so the entrypoint can seed on a first run; the two addresses
+      # fall back to the seeder's own defaults when blank.
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-}
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-}
+      SEED_MEMBER_EMAIL: ${SEED_MEMBER_EMAIL:-}
+
+      # --- project management: integrations and AI ----------------------------------------
+      # Both default OFF (CLAUDE.md §12). What each one does at its extremes is in
+      # .env.example. ANTHROPIC_API_KEY is deliberately NOT here: this process never calls
+      # the model, so it never holds the key. Only `ai-worker` below does.
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+      AI_ENABLED: ${AI_ENABLED:-false}
+      AI_MODEL: ${AI_MODEL:-claude-opus-5}
+      AI_EFFORT: ${AI_EFFORT:-high}
+      AI_MAX_ATTEMPTS: ${AI_MAX_ATTEMPTS:-3}
+    # No volumes: the service writes nothing to disk; all state lives in the database.
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+
+  # The AI worker: the same image, a different process. It claims `ai_jobs` rows, calls the
+  # Claude API and writes the result back — so a slow model call ties up a worker, never an
+  # API request (docs/design/03-ai-strategy.md). Scale it independently:
+  #   docker compose up -d --scale ai-worker=3
+  # Jobs are claimed with SELECT ... FOR UPDATE SKIP LOCKED and a lease, so replicas never
+  # take the same job and a job held by a killed replica is picked up once its lease lapses.
+  ai-worker:
+    build:
+      context: .
+    restart: on-failure
+    # After the API is healthy, which means its entrypoint has applied the migrations. The
+    # worker skips the entrypoint on purpose: two containers racing `alembic upgrade head`
+    # against one database is how a revision gets applied twice.
+    depends_on:
+      api:
+        condition: service_healthy
+    entrypoint: []
+    command: ["python", "-m", "workers.ai_worker"]
+    # The image's HEALTHCHECK curls :8000, which this process does not serve.
+    healthcheck:
+      disable: true
+    # Opt-in: `docker compose --profile ai up -d`. It exits cleanly (refuses to start) when
+    # AI_ENABLED is false, which is why `restart` above is `on-failure` rather than
+    # `unless-stopped` — a disabled worker stays down instead of restart-looping.
+    profiles: ["ai"]
+    environment:
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-base_project}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-base_project}
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env — bootstrap.sh generates one}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_EXTRA_SECRETS: ${LOG_EXTRA_SECRETS:-}
+      AI_ENABLED: ${AI_ENABLED:-false}
+      AI_MODEL: ${AI_MODEL:-claude-opus-5}
+      AI_EFFORT: ${AI_EFFORT:-high}
+      AI_MAX_ATTEMPTS: ${AI_MAX_ATTEMPTS:-3}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+  # The report worker: the same image again. It renders large exports and scheduled reports
+  # (`report_jobs` rows), emails schedules, and writes the nightly issue snapshot behind the
+  # cumulative flow diagram (docs/design/08-reports.md). Not behind a profile: without it,
+  # an export over 5,000 rows waits forever and no schedule is ever sent. Claims use
+  # SKIP LOCKED and a lease, as the AI worker's do, so it scales the same way:
+  #   docker compose up -d --scale report-worker=2
+  report-worker:
+    build:
+      context: .
+    restart: unless-stopped
+    # After the API is healthy — its entrypoint applies the migrations; this one skips it.
+    depends_on:
+      api:
+        condition: service_healthy
+    entrypoint: []
+    command: ["python", "-m", "workers.report_worker"]
+    healthcheck:
+      disable: true
+    environment:
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-base_project}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-base_project}
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env — bootstrap.sh generates one}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_EXTRA_SECRETS: ${LOG_EXTRA_SECRETS:-}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-PMT}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+
+  app:
+    build:
+      context: ../pmt-app
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8080}:80"
+
+volumes:
+  db-data:

@@ -1,0 +1,190 @@
+# The gate. Added 2026-08-26 — until then this repository had no CI at all, which is to
+# say the half of the product that holds the password hashes and signs the tokens was
+# verified by whoever remembered to run pytest.
+#
+# Every job runs a `make` target rather than an inlined command list. That is the whole
+# design: if CI and the local command can drift, the local one stops being trusted and the
+# CI failure stops being reproducible.
+#
+#   fast (this file, every push and PR)  lint, types, secrets, unit+integration, MySQL,
+#                                        migrations up AND down, the image
+#   slow (nightly.yml)                   dependency audit, the live-stack suite
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+# A second push to the same branch cancels the first. These jobs are pure checks; there is
+# nothing to preserve in a superseded run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  gates:
+    name: lint, types, secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      # Ruff, gated by ruff-suppressions.json. A finding already in the ledger passes; a
+      # new one fails. The summary is printed either way so the backlog stays visible.
+      - name: Lint ledger
+        run: make lint
+
+      - name: Types
+        run: make typecheck
+
+      # Whole-tree, not just the diff: a credential that landed three commits ago is still
+      # a credential, and this is the run that would notice.
+      - name: Secret scan
+        run: python scripts/check_staged_secrets.py --all
+
+  tests-sqlite:
+    name: tests (SQLite, no infrastructure)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+
+      # The SPA, beside this checkout, for the one test that reads it:
+      # tests/integration/test_emailed_links.py checks that the SPA still routes the paths the
+      # emailed reset and invite links open. Checked out inside the workspace and moved beside
+      # it, because actions/checkout refuses a `path` outside $GITHUB_WORKSPACE (the same
+      # dance as nightly.yml). `continue-on-error`: without the SPA that one check skips and
+      # says so; it is not a reason to lose the rest of the suite's signal.
+      - name: Fetch the SPA
+        id: spa
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/pmt-app
+          path: pmt-app
+      - name: Move the SPA beside the API
+        if: steps.spa.outcome == 'success'
+        run: mv pmt-app ../pmt-app
+
+      # The default path a contributor runs. It must keep working with zero services, and
+      # `--cov` enforces the ratchet in [tool.coverage.report].
+      - name: pytest
+        run: python -m pytest --cov --cov-report=term-missing --cov-report=xml
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+  tests-mysql:
+    name: tests (MySQL) + migrations
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-not-a-secret
+          MYSQL_DATABASE: base_project
+          MYSQL_USER: base_project
+          MYSQL_PASSWORD: ci-user-not-a-secret
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      TEST_DATABASE_URL: mysql+pymysql://base_project:ci-user-not-a-secret@127.0.0.1:3306/base_project
+      DATABASE_URL: mysql+pymysql://base_project:ci-user-not-a-secret@127.0.0.1:3306/base_project
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+
+      # The two MySQL divergences (utf8mb4 collation, VARCHAR length limits on indexed
+      # columns) do not reproduce on SQLite, which is exactly why this job exists.
+      - name: pytest against MySQL
+        run: python -m pytest -m "integration or unit"
+
+      # Up is what the container does on start. Down is what nobody ever runs until the
+      # night they need to, which is the wrong night to discover a revision has no
+      # downgrade. Both directions, every push.
+      # The key is generated here rather than written into this file. A literal Fernet
+      # key in a workflow is a credential-shaped string in the repository, and
+      # `scripts/check_staged_secrets.py` is right to refuse it — CI should not need an
+      # exemption from the rule it enforces.
+      - name: alembic upgrade head, then downgrade base
+        run: |
+          export SECRET_KEY=$(python -c \
+            "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+          alembic upgrade head
+          alembic downgrade base
+
+  image:
+    name: docker build, and no .env inside it
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: docker build -t pmt-api:ci .
+
+      # `.gitignore` explains at length why `.dockerignore` matters here: without it,
+      # `COPY . .` bakes the developer's real SECRET_KEY into the image and
+      # `docker history` shows it to anyone who pulls. That comment asked for an
+      # assertion; this is the assertion.
+      # The check as first written could not fail: a fresh `actions/checkout` contains no
+      # .env at all, so the build context had nothing to leak whatever .dockerignore said.
+      # It proved the checkout was clean, not that the image was safe.
+      #
+      # So: plant one, rebuild, and assert it did NOT get in. That tests `.dockerignore`,
+      # which is the thing whose absence `.gitignore` describes as "actively dangerous".
+      - name: Plant a decoy .env, rebuild, and assert it stayed out
+        run: |
+          set -euo pipefail
+          printf 'SECRET_KEY=decoy-not-a-secret\n' > .env
+          printf 'SECRET_KEY=decoy-not-a-secret\n' > .env.local
+          docker build -t pmt-api:leaktest .
+          found=$(docker run --rm --entrypoint sh pmt-api:leaktest -c \
+            'find / -xdev \( -name ".env" -o -name ".env.*" \) ! -name ".env.example" 2>/dev/null' \
+            || true)
+          rm -f .env .env.local
+          if [ -n "$found" ]; then
+            echo "::error::.dockerignore did not exclude the environment files:"
+            echo "$found"
+            exit 1
+          fi
+          echo "The decoy .env files stayed out of the image."
+
+      # And the negative control: with .dockerignore removed the same build MUST leak, or
+      # the assertion above is passing for some reason other than the one claimed.
+      - name: Negative control - without .dockerignore the decoy must get in
+        run: |
+          set -euo pipefail
+          printf 'SECRET_KEY=decoy-not-a-secret\n' > .env
+          mv .dockerignore .dockerignore.off
+          docker build -t pmt-api:control . || true
+          found=$(docker run --rm --entrypoint sh pmt-api:control -c \
+            'find /app -maxdepth 1 -name ".env" 2>/dev/null' || true)
+          mv .dockerignore.off .dockerignore
+          rm -f .env
+          if [ -z "$found" ]; then
+            echo "::error::the leak test cannot detect a leak - the assertion above is vacuous"
+            exit 1
+          fi
+          echo "Negative control passed: the check can actually fail."

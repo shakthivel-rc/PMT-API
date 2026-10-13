@@ -1,0 +1,114 @@
+from pydantic import BaseModel, EmailStr
+from typing import Optional
+from datetime import datetime
+from typing import List
+
+
+# Request Schema (for login - accepts email or username)
+class UserLoginRequest(BaseModel):
+    username: str
+    password: str
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+class UserSignupReqeust(BaseModel):
+    email: EmailStr
+    first_name: str
+    last_name: str
+    organization: str
+    role_id: str
+    department: str
+    username: str
+
+
+class PasswordSchema(BaseModel):
+    new_password: str
+    confirm_password: str
+
+
+class TokenPasswordSchema(PasswordSchema):
+    """A new password plus the one-time token from an emailed link.
+
+    The token travels in the body, not the query string, because a credential in a URL is a
+    credential in every access log, proxy log and `Referer` header that URL passes through
+    (docs/production-readiness-plan.md, SEC-4). It was a `?token=` query parameter until
+    2026-09-29.
+    """
+    token: str
+
+class ForgotPasswordSchema(BaseModel):
+    email: EmailStr
+
+
+class UserRegisterRequest(BaseModel):
+    email: EmailStr
+    first_name: str
+    last_name: str
+    username: str
+    organization: str = ""
+    department: str = ""
+
+class VerifyOTPRequest(BaseModel):
+    email: EmailStr
+    otp: str
+
+class ResendOTPRequest(BaseModel):
+    email: EmailStr
+
+class SetPasswordAfterRegRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+    confirm_password: str
+
+class ChangePasswordSchema(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_password: str
+
+class UserUpdateRequest(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    organization: Optional[str] = None
+    department: Optional[str] = None
+    role_id: Optional[str] = None
+
+class UserRoleSchema(BaseModel):
+    role_id: str
+    role_name: str
+
+class UserPermissionSchema(BaseModel):
+    permission_name: str
+    machine_name: str
+
+class UserProfileResponse(BaseModel):
+    id: str
+    username: str
+    first_name: str
+    last_name: str
+    # str, not EmailStr — deliberately, and this is the one response model that had it.
+    #
+    # EmailStr here re-validates an address that is already stored, so a row the database
+    # accepted becomes an uncaught ValidationError on the way *out* — and with no global
+    # exception handler that is a bare HTTP 500. The seeded superadmin tripped exactly this:
+    # email-validator rejects the special-use TLDs .local, .localhost, .test and .invalid
+    # (RFC 6761/6762), so superadmin@base-project.local could sign in — login takes a plain
+    # str — and then got a 500 from GET /users/profile every time.
+    #
+    # Validation belongs on the way in, where a bad address can still be refused with a 422
+    # the caller can act on. Every request schema above keeps EmailStr for that reason.
+    email: str
+    organization: str
+    department: str
+    created_at: datetime
+    updated_at: datetime
+    roles: List[UserRoleSchema]
+    permissions: List[UserPermissionSchema]
+
+class UserProfileResponseWrapper(BaseModel):
+    status: str
+    status_code: int
+    message: str
+    data: UserProfileResponse

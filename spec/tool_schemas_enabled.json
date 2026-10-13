@@ -1,0 +1,3229 @@
+{
+ "note": "Provider-neutral function schemas (JSON Schema in `parameters`). Map to Anthropic `input_schema` / OpenAI `function.parameters` in the LLM gateway adapter. `_meta` is for the router/gateway and must be stripped before sending to a provider. Includes virtual tools.",
+ "tools": [
+  {
+   "name": "user_get_profile",
+   "description": "Retrieve current authenticated user's profile details and assigned roles. Rules: Caller must be authenticated.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "admin",
+    "tier": "T0",
+    "core": true
+   }
+  },
+  {
+   "name": "workspace_list",
+   "description": "List all active workspaces where the authenticated caller is an enrolled member. Rules: User must be authenticated.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "workspace_create",
+   "description": "Create a new workspace tenant, automatically assigning caller as Workspace Admin/Owner. Rules: Caller must be authenticated; workspace slug derived from name must be unique.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Workspace name. 1-100 characters"
+     },
+     "description": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Description text. Max 500 characters"
+     }
+    },
+    "required": [
+     "name"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "workspace_tree_get",
+   "description": "Retrieve the complete structural hierarchy tree (Spaces -> Folders -> Lists) of a workspace. Rules: Caller must be an active member of the workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T0",
+    "core": true
+   }
+  },
+  {
+   "name": "workspace_update",
+   "description": "Update metadata properties (name, description) of an existing workspace. Rules: Caller must have Admin role in workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "New workspace name. 1-100 characters"
+     },
+     "description": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "New description. Max 500 characters"
+     }
+    },
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "workspace_members_list",
+   "description": "List all users enrolled in a workspace along with their tenant roles. Rules: Caller must be an active member of the workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "workspace_member_add",
+   "description": "Add an existing user to the workspace with a designated workspace role. Rules: User must exist in system; user must not already be an enrolled member.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "user_id": {
+      "type": "string",
+      "description": "User id or email. Accepts: workspace member name, email or user id (resolved server-side)"
+     },
+     "role": {
+      "type": "string",
+      "enum": [
+       "admin",
+       "member",
+       "viewer"
+      ],
+      "default": "member",
+      "description": "Role name. Must be valid role string"
+     }
+    },
+    "required": [
+     "user_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "workspace_member_update_role",
+   "description": "Update the assigned role of an existing workspace member. Rules: Caller must be workspace admin; cannot demote the sole remaining admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "user_id": {
+      "type": "string",
+      "description": "User id or member name. Accepts: workspace member name, email or user id (resolved server-side)"
+     },
+     "role": {
+      "type": "string",
+      "enum": [
+       "admin",
+       "member",
+       "viewer"
+      ],
+      "description": "New role. Valid role string"
+     }
+    },
+    "required": [
+     "user_id",
+     "role"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "workspace_member_remove",
+   "description": "Remove a member from the workspace, immediately revoking all workspace resource access. Rules: Cannot remove the last admin of the workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "user_id": {
+      "type": "string",
+      "description": "User id or member name. Accepts: workspace member name, email or user id (resolved server-side)"
+     }
+    },
+    "required": [
+     "user_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "space_get",
+   "description": "Retrieve details, configuration, status, and metadata of a specific Space. Rules: Space must exist in caller's workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space id or space name. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "space_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "space_create",
+   "description": "Create a top-level Space container inside a workspace, setting up its workflow and issue key prefix. Rules: Caller must have permission to create spaces in the workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Space name. 1-100 characters"
+     },
+     "description": {
+      "type": "string",
+      "description": "Description"
+     },
+     "workflow_id": {
+      "type": "string",
+      "description": "Workflow template id. Accepts: workflow name or id (resolved server-side)"
+     }
+    },
+    "required": [
+     "name"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "space_update",
+   "description": "Update metadata or settings of an existing Space (name, description, workflow_id). Rules: Space must not be frozen or archived (guarded by `services/write_guard.py`).",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space id or name. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "New name. 1-100 characters"
+     },
+     "description": {
+      "type": "string",
+      "description": "New description"
+     }
+    },
+    "required": [
+     "space_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "space_archive",
+   "description": "Archive a Space, rendering it read-only and hiding it from active sidebar queries. Rules: Space must not already be archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space id or name. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "space_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "space_unarchive",
+   "description": "Restore an archived Space back to active status, re-enabling write operations. Rules: Space must currently be archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space id or name. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "space_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "space_freeze",
+   "description": "Freeze a Space during organizational migrations or compliance audits, blocking all writes. Rules: Space must not already be frozen.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space id or name. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "space_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "space_unfreeze",
+   "description": "Unfreeze a Space, lifting HTTP 423 Locked restrictions and allowing modifications again. Rules: Space must currently be frozen.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space id or name. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "space_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "folder_create",
+   "description": "Create a Folder container inside a Space to organize multiple lists. Rules: Parent Space must not be frozen or archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Parent space id or name. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Folder name. 1-100 characters"
+     }
+    },
+    "required": [
+     "space_id",
+     "name"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "folder_update",
+   "description": "Update folder name or metadata. Rules: Folder and parent space must not be frozen or archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "folder_id": {
+      "type": "string",
+      "description": "Folder id or name. Accepts: folder name or UUID (resolved server-side)"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "New folder name. 1-100 characters"
+     }
+    },
+    "required": [
+     "folder_id",
+     "name"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "folder_archive",
+   "description": "Archive a Folder and all child lists within it. Rules: Folder must not already be archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "folder_id": {
+      "type": "string",
+      "description": "Folder id or name. Accepts: folder name or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "folder_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "folder_unarchive",
+   "description": "Unarchive a previously archived folder and restore its visibility. Rules: Folder must currently be archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "folder_id": {
+      "type": "string",
+      "description": "Folder id or name. Accepts: folder name or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "folder_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "list_create",
+   "description": "Create a new issue List under a Space or within a Folder. Rules: Parent space/folder must not be frozen or archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Parent space id or name. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     },
+     "folder_id": {
+      "type": "string",
+      "description": "Parent folder id or name. Accepts: folder name or UUID (resolved server-side)"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "List name. 1-100 characters"
+     }
+    },
+    "required": [
+     "space_id",
+     "name"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "list_update",
+   "description": "Update list metadata or name. Rules: List and parent container must not be frozen or archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "list_id": {
+      "type": "string",
+      "description": "List id or name. Accepts: list name or UUID (resolved server-side)"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "New list name. 1-100 characters"
+     }
+    },
+    "required": [
+     "list_id",
+     "name"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "list_archive",
+   "description": "Archive a List, hiding it and marking its tickets as non-editable under write guard. Rules: List must not already be archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "list_id": {
+      "type": "string",
+      "description": "List id or name. Accepts: list name or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "list_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "list_unarchive",
+   "description": "Unarchive a previously archived List and restore write access to its tickets. Rules: List must currently be archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "list_id": {
+      "type": "string",
+      "description": "List id or name. Accepts: list name or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "list_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "governance_settings_get",
+   "description": "Retrieve workspace governance policies including WIP limits, workflow enforcement, and estimation rules. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "governance_settings_update",
+   "description": "Update workspace governance policies and transition rules. Rules: Caller must be Workspace Admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "wip_limits_enabled": {
+      "type": "boolean",
+      "description": "Boolean flag"
+     },
+     "strict_transitions": {
+      "type": "boolean",
+      "description": "Boolean flag"
+     },
+     "estimation_required": {
+      "type": "boolean",
+      "description": "Boolean flag"
+     }
+    },
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "issue_list",
+   "description": "Query, search, filter, and paginate issues across lists, spaces, or the entire workspace. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space filter. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     },
+     "list_id": {
+      "type": "string",
+      "description": "List filter. Accepts: list name or UUID (resolved server-side)"
+     },
+     "assignee_id": {
+      "type": "string",
+      "description": "User id or name. Accepts: workspace member name, email or user id (resolved server-side)"
+     },
+     "status": {
+      "type": "string",
+      "description": "Status name. Stage name/slug"
+     },
+     "priority": {
+      "type": "string",
+      "enum": [
+       "urgent",
+       "high",
+       "medium",
+       "low"
+      ],
+      "description": "Priority level"
+     },
+     "type": {
+      "type": "string",
+      "enum": [
+       "task",
+       "bug",
+       "story",
+       "epic"
+      ],
+      "description": "Issue type"
+     },
+     "search": {
+      "type": "string",
+      "description": "Query string. Search text"
+     },
+     "page": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1,
+      "description": "Page number. >= 1"
+     },
+     "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 20,
+      "description": "Page size. 1-100"
+     }
+    },
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T0",
+    "core": true
+   }
+  },
+  {
+   "name": "issue_board_get",
+   "description": "Retrieve board column groupings of issues organized by workflow stages for a space or list. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space context. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     },
+     "sprint_id": {
+      "type": "string",
+      "description": "Active sprint filter. Accepts: sprint name/number (within a space) or UUID (resolved server-side)"
+     }
+    },
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "issue_backlog_get",
+   "description": "Fetch unassigned or backlog issues ordered by rank for sprint planning. Rules: Space must exist in caller's workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space id. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "space_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "issue_key_resolve",
+   "description": "Resolve an issue key (e.g. 'ENG-104') to its full issue entity and UUID. Rules: Issue with key must exist in workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_key": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]+-\\d+$",
+      "description": "Human key like eng-104. Regex ^[A-Z0-9]+-\\d+$"
+     }
+    },
+    "required": [
+     "issue_key"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "issue_get",
+   "description": "Retrieve comprehensive details, fields, assignee, status, and dates of a specific issue by UUID. Rules: Issue must exist in workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue uuid. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "issue_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T0",
+    "core": true
+   }
+  },
+  {
+   "name": "issue_create",
+   "description": "Create a new issue/ticket in a designated list, allocating an auto-incrementing key. Rules: Target list and space must not be frozen or archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "list_id": {
+      "type": "string",
+      "description": "Target list id or name. Accepts: list name or UUID (resolved server-side)"
+     },
+     "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Issue title / summary. 1-255 characters"
+     },
+     "description": {
+      "type": "string",
+      "description": "Detailed description. Markdown text"
+     },
+     "type": {
+      "type": "string",
+      "enum": [
+       "task",
+       "bug",
+       "story",
+       "epic"
+      ],
+      "default": "task",
+      "description": "Issue type"
+     },
+     "priority": {
+      "type": "string",
+      "enum": [
+       "urgent",
+       "high",
+       "medium",
+       "low"
+      ],
+      "default": "medium",
+      "description": "Priority"
+     },
+     "assignee_id": {
+      "type": "string",
+      "description": "Assignee name or user id. Accepts: workspace member name, email or user id (resolved server-side)"
+     },
+     "story_points": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Story points / estimate. >= 0"
+     },
+     "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Due date. YYYY-MM-DD"
+     }
+    },
+    "required": [
+     "list_id",
+     "title"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T1",
+    "core": true
+   }
+  },
+  {
+   "name": "issue_update",
+   "description": "Update fields of an issue: title, description, status/stage, priority, type, points, due date, assignee. Rules: Issue container must not be frozen or archived; status change must satisfy governance WIP limits if enabled.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue uuid or key. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     },
+     "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Title. 1-255 characters"
+     },
+     "description": {
+      "type": "string",
+      "description": "Description"
+     },
+     "status": {
+      "type": "string",
+      "description": "Status name. Must be valid workflow stage"
+     },
+     "priority": {
+      "type": "string",
+      "enum": [
+       "urgent",
+       "high",
+       "medium",
+       "low"
+      ],
+      "description": "Priority"
+     },
+     "type": {
+      "type": "string",
+      "enum": [
+       "task",
+       "bug",
+       "story",
+       "epic"
+      ],
+      "description": "Type"
+     },
+     "assignee_id": {
+      "type": "string",
+      "description": "Assignee. Accepts: workspace member name, email or user id (resolved server-side)"
+     },
+     "story_points": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Story points. >= 0"
+     },
+     "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Due date. YYYY-MM-DD"
+     }
+    },
+    "required": [
+     "issue_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T1",
+    "core": true
+   }
+  },
+  {
+   "name": "issue_move",
+   "description": "Move an issue to a different list within the workspace, optionally keeping or remapping status. Rules: Both source and target lists must not be frozen or archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     },
+     "target_list_id": {
+      "type": "string",
+      "description": "Destination list. Accepts: list name or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "issue_id",
+     "target_list_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "issue_rank_backlog",
+   "description": "Reorder an issue in the space backlog relative to adjacent issues using fractional ranking. Rules: Space must not be frozen or archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     },
+     "prev_issue_id": {
+      "type": "string",
+      "description": "Preceding issue. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     },
+     "next_issue_id": {
+      "type": "string",
+      "description": "Succeeding issue. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "issue_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "issue_delete",
+   "description": "Soft-delete an issue, detaching dependencies, comments, and time entries. Rules: Issue must exist; cannot be deleted if active running timer is tracking time against it.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "issue_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T3",
+    "core": false
+   }
+  },
+  {
+   "name": "comment_list",
+   "description": "List all comments and discussion threads posted on a specific issue. Rules: Issue must exist in workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "issue_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "comment_create",
+   "description": "Post a new comment on an issue discussion thread. Rules: Parent issue container must not be frozen or archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     },
+     "content": {
+      "type": "string",
+      "description": "Comment text. Non-empty markdown text"
+     }
+    },
+    "required": [
+     "issue_id",
+     "content"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "comment_update",
+   "description": "Edit the content of an existing comment previously made by the user. Rules: Caller must be comment author or workspace admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     },
+     "comment_id": {
+      "type": "string",
+      "description": "Comment id. Accepts: comment id from comment_list (resolved server-side)"
+     },
+     "content": {
+      "type": "string",
+      "description": "Updated content. Non-empty string"
+     }
+    },
+    "required": [
+     "issue_id",
+     "comment_id",
+     "content"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "comment_delete",
+   "description": "Delete a comment from an issue. Rules: Caller must be author or workspace admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     },
+     "comment_id": {
+      "type": "string",
+      "description": "Comment id. Accepts: comment id from comment_list (resolved server-side)"
+     }
+    },
+    "required": [
+     "issue_id",
+     "comment_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "issue_ai_summary_request",
+   "description": "Trigger an asynchronous background AI job to digest and summarize an issue description, attachments, and comment thread. Rules: Issue must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "issue_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "issue_ai_job_get",
+   "description": "Poll the status and completed markdown output of an asynchronous AI summarization task. Rules: Job must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "job_id": {
+      "type": "string",
+      "description": "Job id"
+     }
+    },
+    "required": [
+     "job_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "dependency_list",
+   "description": "List all linked dependencies for an issue (blocks, blocked_by, relates_to, duplicates, clones). Rules: Issue must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "issue_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "dependency_create",
+   "description": "Link two issues together via a defined dependency relation (blocks, is blocked by, relates to). Rules: Both issues must exist; circular blocking relationships are validated.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Source issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     },
+     "target_issue_id": {
+      "type": "string",
+      "description": "Target issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     },
+     "relationship_type": {
+      "type": "string",
+      "enum": [
+       "blocks",
+       "blocked_by",
+       "relates_to",
+       "duplicates",
+       "clones"
+      ],
+      "description": "Relation type. Valid"
+     }
+    },
+    "required": [
+     "issue_id",
+     "target_issue_id",
+     "relationship_type"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "dependency_delete",
+   "description": "Remove a link or blocking relationship between two issues. Rules: Dependency record must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Source issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     },
+     "dep_id": {
+      "type": "string",
+      "description": "Dependency link id"
+     }
+    },
+    "required": [
+     "issue_id",
+     "dep_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "sprint_list",
+   "description": "List all sprints for a space, filtering by status (planned, active, completed). Rules: Space must exist in workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space id or name. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "planned",
+       "active",
+       "completed"
+      ],
+      "description": "Status filter"
+     }
+    },
+    "required": [
+     "space_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T0",
+    "core": true
+   }
+  },
+  {
+   "name": "sprint_create",
+   "description": "Create a new planned sprint iteration with a name, goal, and target dates. Rules: Space must not be frozen or archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space id or name. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Sprint name. 1-100 characters"
+     },
+     "goal": {
+      "type": "string",
+      "description": "Sprint goal"
+     },
+     "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Start date. YYYY-MM-DD"
+     },
+     "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "End date. YYYY-MM-DD > start_date"
+     }
+    },
+    "required": [
+     "space_id",
+     "name"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "sprint_get",
+   "description": "Get sprint details, dates, goal, and status by sprint UUID. Rules: Sprint must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "sprint_id": {
+      "type": "string",
+      "description": "Sprint id or name. Accepts: sprint name/number (within a space) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "sprint_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T0",
+    "core": true
+   }
+  },
+  {
+   "name": "sprint_update",
+   "description": "Update sprint properties like name, goal, and schedule dates. Rules: Sprint must not be in 'completed' status.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "sprint_id": {
+      "type": "string",
+      "description": "Sprint id or name. Accepts: sprint name/number (within a space) or UUID (resolved server-side)"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Sprint name. 1-100 characters"
+     },
+     "goal": {
+      "type": "string",
+      "description": "Goal"
+     },
+     "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Start date. ISO date"
+     },
+     "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "End date. ISO date"
+     }
+    },
+    "required": [
+     "sprint_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "sprint_delete",
+   "description": "Delete a planned sprint, returning all assigned tickets back to the backlog. Rules: Sprint must not be currently active; only 'planned' sprints can be deleted.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "sprint_id": {
+      "type": "string",
+      "description": "Sprint id or name. Accepts: sprint name/number (within a space) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "sprint_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "sprint_start",
+   "description": "Transition a planned sprint to 'active' status. Validates governance estimation policies and checks no other sprint is active if single active sprint policy is on. Rules: Sprint must be in 'planned' status; space must not already have an active sprint; governance policy checks passed.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "sprint_id": {
+      "type": "string",
+      "description": "Sprint id or name. Accepts: sprint name/number (within a space) or UUID (resolved server-side)"
+     },
+     "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Actual start date. ISO date"
+     },
+     "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Target end date. ISO date"
+     }
+    },
+    "required": [
+     "sprint_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "sprint_close",
+   "description": "Complete an active sprint, recording completion metrics and optionally moving incomplete tickets to the next sprint or backlog. Rules: Sprint must be in 'active' status.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "sprint_id": {
+      "type": "string",
+      "description": "Sprint id or name. Accepts: sprint name/number (within a space) or UUID (resolved server-side)"
+     },
+     "target_sprint_id": {
+      "type": "string",
+      "description": "Destination sprint for incomplete issues. Accepts: sprint name/number (within a space) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "sprint_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "sprint_issues_list",
+   "description": "List all issues assigned to a sprint iteration. Rules: Sprint must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "sprint_id": {
+      "type": "string",
+      "description": "Sprint id or name. Accepts: sprint name/number (within a space) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "sprint_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "sprint_issues_add",
+   "description": "Assign one or more issues to a sprint. Rules: Sprint must not be completed; issues must belong to same space as sprint.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "sprint_id": {
+      "type": "string",
+      "description": "Sprint id or name. Accepts: sprint name/number (within a space) or UUID (resolved server-side)"
+     },
+     "issue_ids": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "minItems": 1,
+      "description": "List of issue keys or ids. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "sprint_id",
+     "issue_ids"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "sprint_issues_remove",
+   "description": "Remove one or more issues from a sprint and return them back to the space backlog. Rules: Sprint must not be completed.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "sprint_id": {
+      "type": "string",
+      "description": "Sprint id or name. Accepts: sprint name/number (within a space) or UUID (resolved server-side)"
+     },
+     "issue_ids": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "minItems": 1,
+      "description": "List of issue keys or ids. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "sprint_id",
+     "issue_ids"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "sprint_report_get",
+   "description": "Retrieve comprehensive velocity, committed vs completed story points, and rollover report for a sprint. Rules: Sprint must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "sprint_id": {
+      "type": "string",
+      "description": "Sprint id or name. Accepts: sprint name/number (within a space) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "sprint_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "sprint_burndown_get",
+   "description": "Retrieve daily burndown timeseries data comparing ideal trend line against actual remaining points/hours. Rules: Sprint must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "sprint_id": {
+      "type": "string",
+      "description": "Sprint id or name. Accepts: sprint name/number (within a space) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "sprint_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "space_velocity_get",
+   "description": "Calculate historical sprint velocity (points committed vs completed) across recent sprints for a space. Rules: Space must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space id or name. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "space_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "space_cfd_get",
+   "description": "Retrieve Cumulative Flow Diagram (CFD) distribution data showing issues across workflow stages over time. Rules: Space must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space id or name. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     },
+     "days": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 365,
+      "default": 30,
+      "description": "Days range. 1-365"
+     }
+    },
+    "required": [
+     "space_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "space_cycle_time_get",
+   "description": "Calculate average lead time and cycle time for issues completed within a time window. Rules: Space must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space id or name. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "space_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "release_list",
+   "description": "List all software releases/versions in a space or workspace. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space id or name. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     }
+    },
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "release_create",
+   "description": "Create a new planned release / version milestone. Rules: Space must exist and not be frozen/archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space id or name. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Release title. 1-100 characters"
+     },
+     "version_name": {
+      "type": "string",
+      "description": "Version string. e.g. 'v1.4.0'"
+     },
+     "target_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Target release date. ISO date"
+     }
+    },
+    "required": [
+     "space_id",
+     "name",
+     "version_name"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "release_get",
+   "description": "Get release details, progress, and linked issues. Rules: Release must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "release_id": {
+      "type": "string",
+      "description": "Release id or version. Accepts: release name, version or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "release_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "release_update",
+   "description": "Update release metadata, description, or target date. Rules: Release must not already be shipped.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "release_id": {
+      "type": "string",
+      "description": "Release id or version. Accepts: release name, version or UUID (resolved server-side)"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Release title. 1-100 characters"
+     },
+     "target_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Target date. ISO date"
+     }
+    },
+    "required": [
+     "release_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "release_delete",
+   "description": "Delete a release version, unlinking associated fix version tags from issues. Rules: Release must not already be shipped.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "release_id": {
+      "type": "string",
+      "description": "Release id or version. Accepts: release name, version or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "release_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T3",
+    "core": false
+   }
+  },
+  {
+   "name": "release_ship",
+   "description": "Ship/mark release as deployed and completed, locking its version tags and compiling release notes. Rules: Release must be in 'unreleased' status.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "release_id": {
+      "type": "string",
+      "description": "Release id or version. Accepts: release name, version or UUID (resolved server-side)"
+     },
+     "released_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Release timestamp. ISO datetime"
+     }
+    },
+    "required": [
+     "release_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "release_notes_get",
+   "description": "Generate markdown release notes grouped by issue type (Features, Bug Fixes, Chores) for a release. Rules: Release must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "release_id": {
+      "type": "string",
+      "description": "Release id or version. Accepts: release name, version or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "release_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "release_fix_versions_list",
+   "description": "List all fix versions assigned to a specific issue. Rules: Issue must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "issue_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "release_fix_versions_set",
+   "description": "Set or replace the list of fix versions assigned to an issue. Rules: Issue and releases must exist; issue container must not be frozen or archived.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     },
+     "release_ids": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "minItems": 1,
+      "description": "List of release ids or version names. Accepts: release name, version or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "issue_id",
+     "release_ids"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "planning",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "saved_view_list",
+   "description": "List custom saved filter views created by user or shared across the workspace. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "saved_view_create",
+   "description": "Save current filter configuration, layout type (board/list), and sort orders as a persistent reusable view. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "View name. 1-100 characters"
+     },
+     "filters": {
+      "type": "object",
+      "description": "Filter criteria. Valid filter JSON"
+     },
+     "layout": {
+      "type": "string",
+      "enum": [
+       "list",
+       "board",
+       "calendar"
+      ],
+      "default": "list",
+      "description": "View layout"
+     },
+     "is_shared": {
+      "type": "boolean",
+      "default": false,
+      "description": "Shared flag"
+     }
+    },
+    "required": [
+     "name",
+     "filters"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "saved_view_get",
+   "description": "Retrieve configuration and filter definitions of a saved view. Rules: View must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "view_id": {
+      "type": "string",
+      "description": "View id or name. Accepts: view name or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "view_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "saved_view_update",
+   "description": "Update filters, name, layout, or sharing permissions of an existing saved view. Rules: Caller must be view creator or workspace admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "view_id": {
+      "type": "string",
+      "description": "View id or name. Accepts: view name or UUID (resolved server-side)"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "New name. 1-100 characters"
+     },
+     "filters": {
+      "type": "object",
+      "description": "Updated filters. JSON object"
+     },
+     "is_shared": {
+      "type": "boolean",
+      "description": "Shared flag"
+     }
+    },
+    "required": [
+     "view_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "saved_view_delete",
+   "description": "Delete a custom saved view. Rules: Caller must be view creator or workspace admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "view_id": {
+      "type": "string",
+      "description": "View id or name. Accepts: view name or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "view_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "time_tracking_issue_get",
+   "description": "Get total spent time, estimated time, and remaining time calculation for a specific issue. Rules: Issue must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "issue_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "time",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "time_entry_create",
+   "description": "Log manual time worked against an issue, specifying duration in minutes and optional work description. Rules: Issue container must not be frozen or archived; if lock_days policy is active, cannot log to locked periods.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     },
+     "duration_minutes": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Time spent in MINUTES (convert hours: 2h = 120, 1.5h = 90). > 0"
+     },
+     "description": {
+      "type": "string",
+      "description": "Work description"
+     },
+     "spent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date worked. ISO datetime"
+     }
+    },
+    "required": [
+     "issue_id",
+     "duration_minutes"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "time",
+    "tier": "T1",
+    "core": true
+   }
+  },
+  {
+   "name": "time_entry_update",
+   "description": "Update duration or description of an existing logged time entry. Rules: Caller must be entry owner or workspace admin; period not locked.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "entry_id": {
+      "type": "string",
+      "description": "Time entry id. Accepts: entry id from time_entries_list (resolved server-side)"
+     },
+     "duration_minutes": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Time spent in MINUTES (convert hours: 2h = 120, 1.5h = 90). > 0"
+     },
+     "description": {
+      "type": "string",
+      "description": "New description"
+     }
+    },
+    "required": [
+     "entry_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "time",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "time_entry_delete",
+   "description": "Delete a logged time entry and deduct its minutes from the issue spent total. Rules: Caller must be entry owner or workspace admin; period not locked.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "entry_id": {
+      "type": "string",
+      "description": "Time entry id. Accepts: entry id from time_entries_list (resolved server-side)"
+     }
+    },
+    "required": [
+     "entry_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "time",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "time_entries_list",
+   "description": "Query and filter time entries across users, issues, dates, or sprints. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "user_id": {
+      "type": "string",
+      "description": "User filter. Accepts: workspace member name, email or user id (resolved server-side)"
+     },
+     "issue_id": {
+      "type": "string",
+      "description": "Issue filter. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     },
+     "from_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Start date. YYYY-MM-DD"
+     },
+     "to_date": {
+      "type": "string",
+      "format": "date",
+      "description": "End date. YYYY-MM-DD"
+     }
+    },
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "time",
+    "tier": "T0",
+    "core": true
+   }
+  },
+  {
+   "name": "time_report_get",
+   "description": "Generate aggregated timesheet report grouped by user, project, or issue for payroll/billing. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "group_by": {
+      "type": "string",
+      "enum": [
+       "user",
+       "issue",
+       "space"
+      ],
+      "default": "user",
+      "description": "Aggregation dimension"
+     }
+    },
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "time",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "timer_start",
+   "description": "Start the live stopwatch timer on an issue. Only one active timer is allowed per user globally. Rules: User must not already have an active timer running on any issue in the system.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     },
+     "description": {
+      "type": "string",
+      "description": "Timer memo"
+     }
+    },
+    "required": [
+     "issue_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "time",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "timer_get",
+   "description": "Get the caller's currently running live stopwatch timer. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "time",
+    "tier": "T0",
+    "core": true
+   }
+  },
+  {
+   "name": "timer_stop",
+   "description": "Stop running stopwatch timer and automatically convert elapsed duration into a saved TimeEntry. Rules: Caller must have an active timer running.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "description": {
+      "type": "string",
+      "description": "Final work note"
+     }
+    },
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "time",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "timer_discard",
+   "description": "Cancel and discard active timer without creating a time log entry. Rules: Caller must have an active timer running.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "time",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "time_tracking_settings_get",
+   "description": "Retrieve workspace time tracking configuration (billable tracking, daily targets, period lock days). Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "time",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "time_tracking_settings_update",
+   "description": "Update workspace time tracking configuration. Rules: Caller must be Workspace Admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "allow_manual_entry": {
+      "type": "boolean",
+      "description": "Manual entry toggle"
+     },
+     "require_description": {
+      "type": "boolean",
+      "description": "Description requirement"
+     },
+     "lock_days": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Locking days threshold. >= 0"
+     }
+    },
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "time",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "workflow_get",
+   "description": "Retrieve active workflow schema, stages, transitions, and rules for a space or workspace. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "space_id": {
+      "type": "string",
+      "description": "Space id. Accepts: project/space name, key prefix or UUID (resolved server-side)"
+     }
+    },
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "workflow_templates_list",
+   "description": "List standard workflow templates (e.g. Basic Kanban, Scrum, Bug Tracking, DevOps). Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "workflow_template_create",
+   "description": "Save current workflow schema as a reusable template for new spaces. Rules: Caller must be Workspace Admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Template name. 1-100 characters"
+     },
+     "stages": {
+      "type": "array",
+      "items": {
+       "type": "object"
+      },
+      "description": "Stages schema. Stages array"
+     }
+    },
+    "required": [
+     "name",
+     "stages"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "workflow_template_delete",
+   "description": "Delete a custom workflow template. Rules: Caller must be Workspace Admin; system default templates cannot be deleted.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "template_id": {
+      "type": "string",
+      "description": "Template id or name. Accepts: template name or id (resolved server-side)"
+     }
+    },
+    "required": [
+     "template_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "workflow_editors_list",
+   "description": "List users granted explicit permission to edit and publish workflows. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "workflow_editors_set",
+   "description": "Set or replace the list of users authorized to edit and publish workflows in the workspace. Rules: Caller must be Workspace Admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "user_ids": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "minItems": 1,
+      "description": "List of user ids or emails. Accepts: workspace member name, email or user id (resolved server-side)"
+     }
+    },
+    "required": [
+     "user_ids"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "report_catalog_get",
+   "description": "List all built-in report definitions, supported charts, and available filter parameters. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "report_run",
+   "description": "Execute synchronous analytical report query (e.g. throughput, issue distribution, cycle time). Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "report_type": {
+      "type": "string",
+      "description": "Report type slug. Valid report type from catalog"
+     },
+     "parameters": {
+      "type": "object",
+      "description": "Filters and group_by. Valid params"
+     }
+    },
+    "required": [
+     "report_type"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "report_export",
+   "description": "Export report results directly as CSV or PDF download or enqueue export job. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "report_type": {
+      "type": "string",
+      "description": "Report type. Valid report type"
+     },
+     "format": {
+      "type": "string",
+      "enum": [
+       "csv",
+       "pdf",
+       "json"
+      ],
+      "default": "csv",
+      "description": "File format"
+     },
+     "parameters": {
+      "type": "object",
+      "description": "Filters. JSON"
+     }
+    },
+    "required": [
+     "report_type"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "report_jobs_list",
+   "description": "List asynchronous export and scheduled report generation jobs. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "report_job_get",
+   "description": "Get status and progress of an asynchronous report job. Rules: Job must exist in workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "job_id": {
+      "type": "string",
+      "description": "Job id"
+     }
+    },
+    "required": [
+     "job_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "saved_reports_list",
+   "description": "List custom saved reports created in the workspace. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "saved_report_create",
+   "description": "Save a report template with custom filters and chart parameters for one-click re-runs. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Report name. 1-100 characters"
+     },
+     "report_type": {
+      "type": "string",
+      "description": "Report type. Valid report type"
+     },
+     "parameters": {
+      "type": "object",
+      "description": "Filters and parameters. JSON"
+     }
+    },
+    "required": [
+     "name",
+     "report_type",
+     "parameters"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "saved_report_get",
+   "description": "Get configuration and execute a saved report. Rules: Report must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "report_id": {
+      "type": "string",
+      "description": "Report id or name. Accepts: saved report name or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "report_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "saved_report_update",
+   "description": "Update parameters or rename an existing saved report. Rules: Caller must be creator or admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "report_id": {
+      "type": "string",
+      "description": "Report id or name. Accepts: saved report name or UUID (resolved server-side)"
+     },
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "New name. 1-100 characters"
+     },
+     "parameters": {
+      "type": "object",
+      "description": "New parameters. JSON"
+     }
+    },
+    "required": [
+     "report_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T1",
+    "core": false
+   }
+  },
+  {
+   "name": "saved_report_delete",
+   "description": "Delete a custom saved report. Rules: Caller must be creator or admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "report_id": {
+      "type": "string",
+      "description": "Report id or name. Accepts: saved report name or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "report_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "report_schedules_list",
+   "description": "List recurring automated report email delivery schedules. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "report_schedule_create",
+   "description": "Schedule automated recurring generation and email distribution of a report. Rules: Caller must be Workspace Admin or Report Lead.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Schedule name. 1-100 characters"
+     },
+     "report_type": {
+      "type": "string",
+      "description": "Report type. Valid report type"
+     },
+     "cron_expression": {
+      "type": "string",
+      "description": "Schedule cron or frequency. Standard cron format"
+     },
+     "recipients": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Email list. Array of valid emails"
+     }
+    },
+    "required": [
+     "name",
+     "report_type",
+     "cron_expression",
+     "recipients"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "report_schedule_update",
+   "description": "Update frequency, recipients, or enabled status of a recurring report schedule. Rules: Caller must be Workspace Admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "schedule_id": {
+      "type": "string",
+      "description": "Schedule id or name. Accepts: schedule name or UUID (resolved server-side)"
+     },
+     "cron_expression": {
+      "type": "string",
+      "description": "Cron string. Cron format"
+     },
+     "enabled": {
+      "type": "boolean",
+      "description": "Active status"
+     }
+    },
+    "required": [
+     "schedule_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "report_schedule_delete",
+   "description": "Delete a report schedule. Rules: Caller must be Workspace Admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "schedule_id": {
+      "type": "string",
+      "description": "Schedule id or name. Accepts: schedule name or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "schedule_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "report_schedule_run_now",
+   "description": "Trigger immediate execution and email dispatch of a report schedule out-of-band. Rules: Schedule must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "schedule_id": {
+      "type": "string",
+      "description": "Schedule id or name. Accepts: schedule name or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "schedule_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "reports_settings_get",
+   "description": "Retrieve workspace reporting retention, export limits, and email gateway settings. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "reports_settings_update",
+   "description": "Update workspace reporting configuration. Rules: Caller must be Workspace Admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "export_row_limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100000,
+      "description": "Row limit. 1-100000"
+     },
+     "retention_days": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 365,
+      "description": "Retention days. 1-365"
+     }
+    },
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "reporting",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "issue_attachments_list",
+   "description": "List all file attachments uploaded to an issue. Rules: Issue must exist.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     }
+    },
+    "required": [
+     "issue_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "admin",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "issue_attachment_delete",
+   "description": "Permanently delete an attachment from an issue and remove the blob from storage. Rules: Caller must be uploader or workspace admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "issue_id": {
+      "type": "string",
+      "description": "Issue key or id. Accepts: ticket key (e.g. ENG-104) or UUID (resolved server-side)"
+     },
+     "attachment_id": {
+      "type": "string",
+      "description": "Attachment id. Accepts: attachment id from issue_attachments_list (resolved server-side)"
+     }
+    },
+    "required": [
+     "issue_id",
+     "attachment_id"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "admin",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "github_repositories_list",
+   "description": "List connected GitHub repositories linked to this workspace. Rules: Caller must belong to workspace.",
+   "parameters": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "admin",
+    "tier": "T0",
+    "core": false
+   }
+  },
+  {
+   "name": "github_repository_link",
+   "description": "Link a GitHub repository to the workspace to enable auto-closing of issues via PR merges and commit refs. Rules: Caller must be Workspace Admin.",
+   "parameters": {
+    "type": "object",
+    "properties": {
+     "repo_full_name": {
+      "type": "string",
+      "description": "Github repo full name. Format 'owner/repo'"
+     },
+     "webhook_secret": {
+      "type": "string",
+      "description": "Webhook secret. Secret string"
+     }
+    },
+    "required": [
+     "repo_full_name"
+    ],
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "admin",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "ask_user",
+   "description": "Ask the user ONE consolidated clarification when required information is missing or a reference is ambiguous. Renders as chips/form. Prefer this over guessing.",
+   "parameters": {
+    "type": "object",
+    "required": [
+     "question"
+    ],
+    "properties": {
+     "question": {
+      "type": "string",
+      "description": "Short question."
+     },
+     "options": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 6,
+      "description": "Candidate answers, e.g. matching entity names."
+     },
+     "fields": {
+      "type": "array",
+      "items": {
+       "type": "object"
+      },
+      "description": "Optional form fields to collect several missing values at once."
+     }
+    }
+   },
+   "_meta": {
+    "domain": "virtual",
+    "tier": "T0",
+    "core": true
+   }
+  },
+  {
+   "name": "find_space",
+   "description": "Find a project (Space) by name or key prefix in the active workspace. Returns candidates with id, name, key.",
+   "parameters": {
+    "type": "object",
+    "required": [
+     "query"
+    ],
+    "properties": {
+     "query": {
+      "type": "string"
+     }
+    }
+   },
+   "_meta": {
+    "domain": "virtual",
+    "tier": "T0",
+    "core": true
+   }
+  },
+  {
+   "name": "find_list",
+   "description": "Find lists inside a space (optionally by name). Used to pick the target list for new tickets.",
+   "parameters": {
+    "type": "object",
+    "required": [
+     "space"
+    ],
+    "properties": {
+     "space": {
+      "type": "string"
+     },
+     "query": {
+      "type": "string"
+     }
+    }
+   },
+   "_meta": {
+    "domain": "virtual",
+    "tier": "T0",
+    "core": true
+   }
+  },
+  {
+   "name": "find_sprint",
+   "description": "Find a sprint in a space by name, number or status (planned/active/completed).",
+   "parameters": {
+    "type": "object",
+    "required": [
+     "space"
+    ],
+    "properties": {
+     "space": {
+      "type": "string"
+     },
+     "query": {
+      "type": "string"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "planned",
+       "active",
+       "completed"
+      ]
+     }
+    }
+   },
+   "_meta": {
+    "domain": "virtual",
+    "tier": "T0",
+    "core": true
+   }
+  },
+  {
+   "name": "find_member",
+   "description": "Find workspace members by name or email. ONLY searches the active workspace (never the platform-wide user directory).",
+   "parameters": {
+    "type": "object",
+    "required": [
+     "query"
+    ],
+    "properties": {
+     "query": {
+      "type": "string"
+     }
+    }
+   },
+   "_meta": {
+    "domain": "virtual",
+    "tier": "T0",
+    "core": true
+   }
+  },
+  {
+   "name": "find_issue",
+   "description": "Find tickets by key (ENG-104) or by title text, optionally within a space.",
+   "parameters": {
+    "type": "object",
+    "required": [
+     "query"
+    ],
+    "properties": {
+     "query": {
+      "type": "string"
+     },
+     "space": {
+      "type": "string"
+     }
+    }
+   },
+   "_meta": {
+    "domain": "virtual",
+    "tier": "T0",
+    "core": true
+   }
+  },
+  {
+   "name": "knowledge_search",
+   "description": "Semantic + keyword search over ticket text, comments, documentation and help content the user may access. Use for \"which tickets mention...\", \"how do I...\", \"what did we decide about...\". Do NOT use for counts/filters/sums: use list/report tools. Returns passages with citations.",
+   "parameters": {
+    "type": "object",
+    "required": [
+     "query"
+    ],
+    "properties": {
+     "query": {
+      "type": "string"
+     },
+     "sources": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "enum": [
+        "issues",
+        "comments",
+        "docs",
+        "help"
+       ]
+      }
+     },
+     "space": {
+      "type": "string"
+     },
+     "top_k": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 5
+     }
+    }
+   },
+   "_meta": {
+    "domain": "virtual",
+    "tier": "T0",
+    "core": true
+   }
+  },
+  {
+   "name": "issue_clone",
+   "description": "Clone a ticket (title, description, type, priority, points) into a list and link it with relationship \"clones\". Subtasks and labels are not modeled and are not copied.",
+   "parameters": {
+    "type": "object",
+    "required": [
+     "issue"
+    ],
+    "properties": {
+     "issue": {
+      "type": "string"
+     },
+     "target_list": {
+      "type": "string"
+     },
+     "include_comments": {
+      "type": "boolean",
+      "default": false
+     }
+    }
+   },
+   "_meta": {
+    "domain": "virtual",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "issue_bulk_update",
+   "description": "Apply the same change to many tickets, selected by explicit keys or a filter. ALWAYS dry-run first and show count + sample; executes sequentially with per-item results; stops after 3 consecutive failures.",
+   "parameters": {
+    "type": "object",
+    "required": [
+     "changes"
+    ],
+    "properties": {
+     "issues": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "maxItems": 100,
+      "description": "Explicit ticket keys."
+     },
+     "filter": {
+      "type": "object",
+      "description": "space, sprint, status, priority, type, assignee, search"
+     },
+     "changes": {
+      "type": "object",
+      "description": "Fields to set (status, priority, assignee_id, due_date, story_points) or {\"delete\": true}."
+     },
+     "dry_run": {
+      "type": "boolean",
+      "default": true
+     }
+    }
+   },
+   "_meta": {
+    "domain": "virtual",
+    "tier": "T2 (<=25 items) / T3 (26-100); hard cap 100",
+    "core": false
+   }
+  }
+ ]
+}

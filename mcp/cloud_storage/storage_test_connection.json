@@ -1,0 +1,20 @@
+{
+  "name": "storage_test_connection",
+  "description": "Verify credentials and connectivity for AWS S3 bucket or Azure Blob Storage container.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "provider": {
+        "type": "string",
+        "enum": ["aws_s3", "azure_blob"],
+        "description": "Cloud storage provider to test"
+      },
+      "config": {
+        "type": "object",
+        "description": "Provider credentials including bucket/container, keys, and region"
+      }
+    },
+    "required": ["provider", "config"],
+    "additionalProperties": false
+  }
+}

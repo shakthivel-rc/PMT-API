@@ -1,0 +1,46 @@
+# Hooks that run before a commit is written. Install with `make hooks`.
+#
+# Deliberately three fast, local checks and nothing that reformats. A hook slower than a
+# couple of seconds gets bypassed with `--no-verify`, and a hook that rewrites files turns
+# every commit into a diff its author did not write — which is how a repository whose
+# comments are hand-wrapped prose loses them.
+#
+# Whitespace and import order are NOT hooks here, on purpose: `W291`, `W293`, `W292` and
+# `I001` are already counted in `ruff-suppressions.json`, so a new one fails the ledger
+# gate below. One mechanism, not two that can disagree.
+# `language: system` and `python3`, not pre-commit's own managed environments: the hooks
+# must run the ruff and mypy pinned in requirements-dev.txt, or the hook and CI can disagree
+# about what a violation is. Activate the venv (or run `make hooks` from it) — outside one,
+# the failure is "No module named mypy", which says what to do.
+repos:
+  - repo: local
+    hooks:
+      - id: lint-ledger
+        name: ruff (new findings only)
+        entry: python3 scripts/lint_ledger.py
+        language: system
+        pass_filenames: false
+        types: [python]
+        description: >-
+          Fails on a finding that is not already recorded in ruff-suppressions.json.
+          Whole-tree, because the ledger counts per file and a partial run cannot tell a
+          new finding from an old one. Ruff is fast enough that this is not felt.
+
+      - id: staged-secrets
+        name: no credentials in staged content
+        entry: python3 scripts/check_staged_secrets.py
+        language: system
+        pass_filenames: false
+        description: >-
+          Refuses .env files and lines matching a Fernet key, JWT, private key or
+          basic-auth URL. See the module docstring for why the pattern list is short.
+
+      - id: mypy-scoped
+        name: mypy (the modules in [tool.mypy])
+        entry: python3 -m mypy
+        language: system
+        pass_filenames: false
+        types: [python]
+        description: >-
+          The modules listed in [tool.mypy], green today. This is the hook that keeps them
+          green; widening the scope is an edit to pyproject.toml, not to this file.

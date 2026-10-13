@@ -1,0 +1,33 @@
+# Development / test dependencies for Base Project API.
+# Installed ON TOP of requirements.txt — never merged into it (keeps the runtime
+# dependency set minimal and auditable). Usage:
+#   pip install -r requirements.txt -r requirements-dev.txt
+#
+# Chosen to match the pinned runtime stack (FastAPI 0.141 / Starlette 1.6 / pydantic 2.13).
+
+pytest==8.3.4
+pytest-cov==6.0.0           # coverage (term + xml + html)
+# Required by fastapi.testclient.TestClient and by tests/live. Not a runtime dependency —
+# nothing in the service makes an outbound HTTP call — so it and its transitive pins
+# live here rather than in requirements.txt.
+httpx==0.28.1
+httpcore==1.0.9
+certifi==2026.7.22
+
+# --- lint, types, audit ------------------------------------------------------------
+# Added 2026-08-26. Pinned like everything else here: a linter that floats picks up new
+# rules on someone else's machine and fails a build that has nothing wrong with it.
+#
+# ruff pinned to the version already present in this venv, so the ledger in
+# ruff-suppressions.json describes the same findings the next person sees. Raising it
+# is a deliberate change: re-run `python scripts/lint_ledger.py --update` in the same
+# commit and read the diff.
+ruff==0.16.4
+# Scoped to the modules listed in [tool.mypy] in pyproject.toml. Green today; keep it green.
+mypy==1.15.0
+# `make audit`. Gates since 2026-08-27; waivers live in docs/security-exceptions.md.
+pip-audit==2.9.0
+# `make hooks`. The hooks themselves are `language: system` — they run the ruff and mypy
+# pinned above rather than a second copy pre-commit manages, so the hook and CI cannot
+# disagree about what a violation is.
+pre-commit==4.1.0

@@ -1,0 +1,143 @@
+# The slow half of the gate. Split from ci.yml because a dependency advisory is not a
+# reason to block the pull request that happened to be open when it was published — it is
+# a reason to open an issue — and because a run that takes fifteen minutes stops being read
+# when it is attached to every push.
+#
+# The audits GATE, as of 2026-08-27. They reported for one release cycle and in that time
+# nobody ran them; the first run found 22 advisories across 5 packages, seven of them in
+# PyJWT. The backlog is now zero. Anything that cannot be upgraded is waived by name, with
+# a reason and a date, in docs/security-exceptions.md — a reviewed line in a file rather
+# than a blanket `continue-on-error` nobody reads.
+name: Nightly
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: dependency advisories
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+
+      # The runtime set only. Advisories in a test-only package are worth knowing about
+      # and are not worth waking anyone for; requirements-dev.txt is audited by hand.
+      - name: pip-audit (runtime dependencies)
+        run: python scripts/audit_deps.py --python-only
+
+      # The SPA is a separate repository, so it has to be fetched deliberately — this job
+      # is the only place in either repo that audits both halves of the product in one run.
+      # It was clean at the last measurement (0 advisories, with and without dev
+      # dependencies) and the only way that stays true is if something checks.
+      #
+      # `continue-on-error` here and NOT on the audit itself: a checkout that fails because
+      # the sibling repository moved is an infrastructure problem, and it must not be
+      # reported as "no advisories".
+      #
+      # Inside the workspace, not beside it: actions/checkout refuses a `path` outside
+      # $GITHUB_WORKSPACE, so `../pmt-app` would fail on every run and this job
+      # would report an infrastructure problem that is really a typo.
+      - name: Fetch the SPA
+        id: spa
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/pmt-app
+          path: pmt-app
+
+      - name: npm audit (SPA runtime dependencies)
+        if: steps.spa.outcome == 'success'
+        run: |
+          cd pmt-app
+          npm ci --ignore-scripts
+          npm audit --omit=dev --audit-level=moderate
+
+      - name: Say so if the SPA half did not run
+        if: steps.spa.outcome != 'success'
+        run: |
+          echo "::warning::The SPA checkout failed, so its dependencies were NOT audited."
+          echo "A skipped check that says nothing is how a gate stops being a gate."
+          exit 1
+
+  live:
+    name: live stack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The whole stack, SPA included: `tests/live/test_deployment_wiring.py` is about nginx —
+      # the /api prefix strip, the SPA fall-through, asset caching, container health — and
+      # against the API's own origin it can only skip. docker-compose.yml builds the `app`
+      # service from `../pmt-app`; actions/checkout refuses a `path` outside
+      # $GITHUB_WORKSPACE, so it is checked out inside and moved beside. No
+      # `continue-on-error`: without the SPA this job cannot do what it is for.
+      - name: Fetch the SPA
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/pmt-app
+          path: pmt-app
+      - run: mv pmt-app ../pmt-app
+
+      # `tests/live` skips itself unless LIVE_API_URL is set, so this job is the only
+      # thing in the repository that ever runs it. Without it those skips are a suite
+      # nobody has executed since it was written.
+      - name: Bring the stack up
+        run: |
+          # The generated keys replace the blank placeholders rather than being appended
+          # after them, so each key appears in .env exactly once.
+          grep -vE '^(SECRET_KEY|SUPERADMIN_PASSWORD|MYSQL_PASSWORD|MYSQL_ROOT_PASSWORD|RATE_LIMIT_CREDENTIAL_PER_MINUTE)=' \
+            .env.example > .env
+          # A Fernet key is 32 random bytes in urlsafe base64. openssl gets there without
+          # needing the Python environment, which is not installed yet at this point.
+          echo "SECRET_KEY=$(openssl rand -base64 32 | tr '+/' '-_')" >> .env
+          # Hex, because compose interpolates it into a database URL where @ : / ? would
+          # corrupt it. docker-compose.yml refuses to start without either of these.
+          echo "MYSQL_PASSWORD=$(openssl rand -hex 24)" >> .env
+          echo "MYSQL_ROOT_PASSWORD=$(openssl rand -hex 24)" >> .env
+          # Shaped to pass the password policy (upper, lower, digit, symbol), so the
+          # entrypoint seeds the superadmin the authenticated live tests sign in as.
+          echo "SUPERADMIN_PASSWORD=Nx!$(openssl rand -hex 6)Aa1" >> .env
+          # Every request from this runner reaches the API from one address (nginx's), so it
+          # all shares one rate-limit bucket, and the suite signs in, registers and refreshes
+          # far more than the shipped 10 credential calls a minute — the 11th would be a 429
+          # and every test after it would fail or skip on that, not on what it asserts. The
+          # limiter stays on, with a budget the suite cannot reach; its behaviour is pinned
+          # hermetically by tests/unit/test_rate_limit.py.
+          echo "RATE_LIMIT_CREDENTIAL_PER_MINUTE=1000" >> .env
+          # --wait blocks until every service reports healthy (and fails the step if one
+          # never does), so the container-health tests do not race a `starting` status.
+          docker compose up -d --build --wait --wait-timeout 300
+          # The wiring suite skips its nginx checks when `/` answers JSON, which is how it
+          # recognises an API-only origin. Here `/` must be the SPA shell, so a `location /`
+          # proxied to the API fails this step instead of skipping those checks.
+          curl -fsS http://localhost:8080/ | grep -q '<div id="root">'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: pytest -m live
+        env:
+          # The SPA origin, so every call goes through nginx (tests/live/conftest.py).
+          LIVE_API_URL: http://localhost:8080
+        run: |
+          SUPERADMIN_PASSWORD="$(grep '^SUPERADMIN_PASSWORD=' .env | cut -d= -f2-)"
+          export SUPERADMIN_PASSWORD
+          python -m pytest -m live
+
+      - name: Logs, if anything failed
+        if: failure()
+        run: docker compose logs --no-color | tail -300
+
+      - name: Down
+        if: always()
+        run: docker compose down -v

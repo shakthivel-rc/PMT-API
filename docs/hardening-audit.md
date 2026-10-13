@@ -1,0 +1,468 @@
+# Hardening audit — 2026-08-26
+
+The audit behind the quality-hardening pass of 2026-08-26. Findings are ranked by expected
+harm × likelihood, not by cost to fix. Every one carries a file and a line, and is marked
+**CONFIRMED** (reproduced, with the reproduction shown) or **SUSPECTED** (reasoned, not
+reproduced). Suspected findings rank below every confirmed one regardless of how bad they
+sound.
+
+**Read Part 2 as well as Part 1.** The most serious finding in this document — a complete
+authentication bypass — is in Part 2, which is the adversarial review *of* Part 1. Part 1
+was reported as finished with a green suite before that review ran.
+
+**A note on method, so the document is not read as more than it is.** The plan asks for the
+audit to be written before any edit. It was not: findings were confirmed and fixed in the
+same session, batch by batch. What that costs is the ability to say "this is the tree as it
+was" — this document describes the tree as it *was found*, reconstructed from the
+measurements taken at the time. What it does not cost is the evidence: every CONFIRMED
+finding below was reproduced before it was touched, and the reproduction is quoted.
+
+**Scope.** This project was split out of a larger product. Findings about that product's
+own domain (F-09, F-13, F-17, F-18, F-19, F-24, F-25, S-04, S-05, and the one item under
+"Accepted, with the reason") were deleted, and the remaining findings were trimmed to what
+still applies. **IDs were not renumbered**, because code and other documents cite them, so
+the gaps are intentional. Counts and measurements are from the original product at the time
+of the audit, kept as the record of what was found, not as a description of this tree.
+
+---
+
+## Summary
+
+| | Before | After |
+|---|---|---|
+| CI | none, in either repository | API: 2 workflows — gates/tests/MySQL/migrations/image, plus nightly audit (both dependency sets) + live stack. SPA: none yet (F-07) |
+| Backend lint | none configured | ruff, 11 rule families, gated by a ratcheting ledger |
+| Backend types | none | mypy over 6 modules, green |
+| `make verify` | entered the SPA only | both halves |
+| API tests | 717 | **893** (+176 after both passes; 70 live-only skips) |
+| API coverage floor | 40% (measured 72.9% full / 49.3% unit) | **48%** (measured 73.6% / 49.3%) |
+| SPA coverage floors | 86/86/89/88 (measured 90/90.4/93.1) | **89/89/92/90** |
+| Lint findings | 2354 unconfigured → 865 baselined | **839**, ratcheted |
+| Secret scanning | none | staged + whole-tree, in the hook and in CI |
+| Authentication | **bypassable via a forged Host header** (F-14) | fixed and pinned |
+| Contract drift API↔SPA | nothing | `docs/openapi-digest.txt` + a failing test |
+
+---
+
+## Confirmed findings
+
+### F-01 — OTP codes came from a predictable generator · **security, high** · FIXED
+
+`controllers/auth_controller.py:372` (as found)
+
+```python
+def _generate_otp() -> str:
+    """Generate a 6-digit OTP."""
+    return str(random.randint(100000, 999999))
+```
+
+`random` is the Mersenne Twister: deterministic, and its internal state is recoverable from
+its own output. The OTP is the second factor on registration and sign-in, so predicting it
+is the entire attack — the first factor is already assumed compromised in the scenario this
+control exists for.
+
+**Blast radius.** Account takeover, without needing the password reset flow.
+**Fix.** `secrets.randbelow(900_000) + 100_000` — identical closed interval, OS-seeded.
+**Proof.** `tests/unit/test_secret_hygiene.py::TestOtpGeneration` pins the call to
+`secrets`, both ends of the range, and the six-digit length. Found by ruff `S311`, which
+did not exist in this repository before this pass.
+
+### F-02 — No route inventory: authentication exemptions were unreviewed · **security, high** · FIXED
+
+`routes/auth_middleware.py:16-45`
+
+`JWTAuthMiddleware` authenticates by default and exempts by list, which is the right way
+round — but nothing checked the list. Twenty routes were exempt; a route added under an
+exempt prefix, or a path added to `UNAUTHENTICATED_ROUTES` while wiring something up, was
+open and silent. Routes were being added, untracked, at the time of the audit, which is
+exactly when this matters.
+
+**Note:** all twenty exemptions turned out to be legitimate, and every one of the other 68
+routes was verified to answer 401 to an anonymous caller. **The finding is the absence of
+the check, not a hole.** That distinction is the reason it is ranked here: the hole is the
+next route, not this one.
+**Fix / proof.** `tests/unit/test_route_inventory.py` — 72 assertions. Every exempt route
+must appear in a `PUBLIC` map with a written reason; every other route is called with no
+token and must answer 401.
+
+### F-03 — Rejections were unreadable to the browser (CORS inside auth) · **correctness, high** · FIXED
+
+`main.py:67-77` (as found)
+
+`CORSMiddleware` was added first, which in Starlette means innermost. A 401 generated by
+`JWTAuthMiddleware` above it never received `Access-Control-Allow-Origin`.
+
+```
+$ probe: GET /api/v1/users  (Origin: http://localhost:3000, no token)
+status: 401
+access-control-allow-origin: None          <-- browser reports a CORS failure
+preflight: 200 http://localhost:3000       <-- which is why it looked fine
+```
+
+**Blast radius.** In a browser, an expired session produced an opaque network error, so the
+SPA could not distinguish "you are signed out" from "the server is down". Silent, and
+invisible to every test that did not check for it.
+**Fix.** CORS moved to outermost; middleware order documented in `main.py`.
+**Proof.** `tests/unit/test_security_headers.py::TestMiddlewareOrder` — the same probe,
+now asserting the header is present.
+
+### F-04 — Blocking database and CPU work on the event loop · **performance, high** · FIXED
+
+`async def` request handlers (as found)
+
+SQLAlchemy here is synchronous. Several `async def` handlers ran ORM queries directly on
+the event loop that every other request shares. Nothing fails when this happens, which is
+why it had survived: every concurrent request simply waits for the one holding the loop.
+
+**Blast radius.** Latency for every concurrent request while one handler held the loop.
+Degradation only; no data loss.
+**Fix.** Each contiguous block of database or CPU work moved into a nested `def` and handed
+to `asyncio.to_thread`.
+**Proof.** `tests/unit/test_no_blocking_db_calls.py` — an AST gate, including a test that
+the gate itself detects a planted violation.
+
+### F-05 — No inbound rate limiting anywhere · **security, high** · FIXED
+
+`main.py`, `routes/auth.py`
+
+Nothing limited inbound requests. Per-account lockout (`AUTH_MAX_FAILED_LOGIN_ATTEMPTS=5`)
+covers one account under sustained attack and does nothing about one client trying one
+password against a thousand accounts, nor about `/user/forgot-password` and
+`/user/resend-otp`, which send mail on demand.
+
+**Fix.** `core/ratelimit.py` — a sliding-window limiter that *refuses* rather than delays
+(waiting is free for an attacker and holds a connection a real user does not get), applied
+outside authentication so a refused request costs no session lookup. Two budgets:
+10/minute on credential paths, 300/minute elsewhere, separate key spaces.
+**Known limitation, documented not hidden:** counters are in-process, so N workers means N
+times the limit. Stated in `core/ratelimit.py`, `.env.example` and `SECURITY.md`.
+**Proof.** `tests/unit/test_rate_limit.py` — 16 assertions including the window actually
+sliding, refused hits not extending the block, bounded key space under an attacker-chosen
+key stream, and `X-Forwarded-For` being ignored unless explicitly trusted.
+
+### F-06 — The API set no security headers on its own port · **security, medium** · FIXED
+
+`main.py`
+
+`nginx.conf` sets a full set — CSP, nosniff, DENY, referrer policy — for the origin serving
+the SPA. The API is a separate service on a separate port that anything can reach directly,
+and it set none. "The reverse proxy does it" is only true of the origin the reverse proxy
+serves.
+
+**Fix.** `SecurityHeadersMiddleware`: nosniff, `X-Frame-Options: DENY`, `no-referrer`,
+COOP, a `default-src 'none'` CSP appropriate to a JSON API, HSTS in production only.
+`/docs` is exempt — Swagger UI is a real document, and a policy that blanks it is a policy
+everyone learns to ignore.
+**Proof.** `tests/unit/test_security_headers.py`.
+
+### F-07 — No CI, in either repository · **workflow, high** · FIXED for the API, OPEN for the SPA
+
+No `.github/`, no `.gitlab-ci.yml`, nothing. The SPA's three ratchets — coverage, bundle
+budgets, the eslint suppression ledger — had never run anywhere except a developer's own
+terminal. `bundle-budget.json` carried a hand-written change log going back to 2026-08-07,
+enforced by nobody.
+
+**Fix.** API: `ci.yml` (lint ledger, mypy, whole-tree secret scan, SQLite suite with the
+coverage ratchet, MySQL suite, `alembic upgrade head` **and** `downgrade base`, docker
+build with a "no `.env` in the image" check) and `nightly.yml` (pip-audit, the live-stack
+suite that 70 skipped tests were waiting for).
+SPA: **not done.** It has no workflow of its own, so its ratchets still run only where
+`npm run verify` (which `make verify-app` wraps) is run by hand; the API's nightly job audits
+the SPA's runtime dependencies and nothing else.
+Every job runs a `make` target or an `npm` script, so CI and the local command cannot drift.
+
+### F-08 — Connection pool sized at SQLAlchemy's default · **performance, medium** · FIXED
+
+`db/session.py:9` — `create_engine(settings.database_url, pool_pre_ping=True)`, i.e.
+`pool_size=5, max_overflow=10`: fifteen connections, against a Starlette threadpool of
+forty running the ~79 synchronous handlers. No `pool_recycle`, so MySQL's `wait_timeout`
+was handled only by a pre-ping round trip on every checkout.
+
+**Blast radius.** Does not fail loudly — it queues. The symptom is latency nobody can
+attribute to a pool nobody has looked at.
+**Fix.** 20 + 20 with `pool_recycle=1800`, derived from the threadpool size and written
+down at the setting. Not applied to SQLite, whose pool takes none of these.
+
+### F-10 — `CLAUDE.md` was cited three times and did not exist · **docs, medium** · FIXED
+
+`Dockerfile:52` (§14), `Makefile:66` (§17), `scripts/bootstrap.sh:198` (§7, rule 5)
+
+The third is a citation for the password policy that `bootstrap.sh` *implements* — a
+security rule whose statement was missing, so it could not be reviewed against the code.
+
+**Fix.** `CLAUDE.md` written; §7, §14 and §17 reconstructed from the code that implements
+them and marked as reconstructed.
+**Proof.** `tests/unit/test_docs_references.py` scans the tree for `FILE.md §N` citations
+and fails when one does not resolve — in either direction.
+
+### F-11 — Type errors in the settings and token layer · **correctness, medium** · FIXED
+
+- `utils/token.py:12` — `Fernet(os.getenv("SECRET_KEY"))`: `str | None` into a
+  bytes-or-str parameter. On a deployment that never set it, the failure is a TypeError
+  about bytes-like objects several frames from the cause, where `core/config._required`
+  already names the missing variable. Now reads through `get_settings()`.
+- `utils/token.py:22` — `encode_to_base64(text: str)` calling `base64.b64encode(text)`,
+  which raises on a `str`. Both call sites pass `encrypt_string(...)`, which returns bytes:
+  the annotation was the wrong half of the pair, and it is the half that changed.
+
+### F-12 — `.gitignore` missed the coverage files pytest actually writes · **security hygiene, low** · FIXED
+
+`.gitignore:31` ignored `.coverage` but not `.coverage.<host>.<pid>.<random>`, and one was
+sitting untracked in the repository root. Coverage data is not a secret. The finding is
+that a rule written to catch a generated file did not, and the next file of that shape
+might not be coverage data.
+
+---
+
+## Suspected
+
+### S-01 — SPA tokens live in `localStorage` · **security, medium** · DECIDED 2026-08-28
+
+**Superseded.** This entry stated the position and left it open. It is now a decision with
+a date, an owner-shaped line and a review trigger, in `docs/token-storage-decision.md` —
+which also corrects two things this entry got wrong by the time it was read: the API stores
+no raw session token any more (SEC-5, now part of the baseline revision `20260821a001`), and
+the line numbers it cited had moved. Read that document rather than this paragraph; what
+follows is kept as the record of what was known on 2026-08-26.
+
+`pmt-app/src/api/client.ts`. Access and refresh tokens are in `localStorage`,
+readable by any script executing on that origin. The mitigation is real —
+`nginx.conf` ships `script-src 'self' 'sha256-…'`, `object-src 'none'`, `base-uri 'none'`,
+`frame-ancestors 'none'` — and the alternative (httpOnly cookies) requires CSRF protection
+and is a design change, not a patch. Recorded in `SECURITY.md` under known limitations.
+
+*(This corrects an earlier reading during this pass which reported that tokens were not in
+`localStorage`. They are; a truncated grep had hidden the client.)*
+
+### S-02 — `allow_credentials=True` with no cookies in use · **security, low** · NOT CHANGED
+
+Nothing in the API sets a cookie and nothing in the SPA sends one — authentication is
+entirely bearer-token. `allow_credentials` could therefore be `False`. Left alone because
+the gain is small with a restricted origin list and the change has no test that would prove
+it safe. The method and header wildcards *were* tightened to the real surface.
+
+### S-03 — `SECRET_KEY` does two jobs · **security, low** · NOT CHANGED
+
+It signs JWTs and is the Fernet key for verify/reset links, so a routine JWT rotation
+invalidates outstanding reset links. Already documented in `.env.example`; separating them
+is a migration, not a hardening edit.
+
+---
+
+## Checked, and clean
+
+Recorded so this document can be distinguished from one that never looked.
+
+- **Authorization on private routes.** All 68 non-public routes answer 401 to an anonymous
+  caller (`tests/unit/test_route_inventory.py`). The original product's owner-scoped
+  records answered 404, not 403, consistently; no route kept here scopes a record to its
+  owner, so that check has nothing to apply to in this tree.
+- **Redaction coverage.** The planted credential shapes are all removed by the redactor (now
+  `core/redact.py`) — url-credentials, aws-access-key, authorization-header and
+  secret-assignment rules all fire. The host and the error text survive.
+- **No secret is committed.** `scripts/check_staged_secrets.py --all` is clean over 185
+  tracked files. `.gitignore`'s `.env.*` rule is correct and well reasoned.
+- **`.dockerignore` exists** in both repositories, and the image is now asserted to contain
+  no `.env`.
+- **Runtime dependencies are fully pinned** with per-package rationale comments.
+- **The container runs as non-root** (uid 10001) and writes nothing to disk.
+- **Every Alembic revision has a real `downgrade`** — all six checked, now enforced by CI.
+- **The SPA's gates all pass** and had headroom: measured 90.0/90.4/93.1 against floors of
+  86/88/89.
+
+### S-06 — The SPA total-size ceiling had 0.2 kB of headroom · **workflow, medium** · RESOLVED 2026-09-28
+
+*(The base-project conversion removed the original product's domain screens, and every
+ceiling was re-measured and lowered: total 248.3 / 260.0 kB, initial JS 193.0 / 198.0 kB,
+initial CSS 13.4 / 16.0 kB — `bundle-budget.json`'s `_comment` records the measurement. The
+figures below are the original finding, kept as it was reported.)*
+
+Measured on the build run at the end of this pass:
+
+```
+  total JS+CSS gzip: 299.8 kB / 300.0 kB ceiling
+  initial JS   194.5 kB / 200.0 kB   (+5.5 kB headroom)
+  initial CSS   15.2 kB /  18.0 kB   (+2.8 kB headroom)
+```
+
+The next lazy chunk of any size fails the build. That is the ratchet working — the ceiling
+was raised 280 → 300 kB twice on 2026-08-24 and the file's own comment says a ceiling that
+drifts up on its own measures nothing — but somebody should decide *now* whether the next
+move is another raise or a trim, rather than at the moment a feature branch goes red.
+Deliberately not raised here: doing so would be exactly the casual increment
+`bundle-budget.json` exists to prevent.
+
+## Not covered
+
+- **Dependency advisories.** `pip-audit` and `npm audit` are wired into `make audit` and the
+  nightly workflow but were not run to completion here, and neither gates yet. Run
+  `make audit` before the next deployment; the flip to gating is a one-line change in
+  `nightly.yml` once the backlog is zero or waived in `docs/security-exceptions.md`. *(Done
+  2026-08-27: the runtime audit gates — SEC-9 in the readiness plan.)*
+- **The `live` test suite (70 skips).** Wired into `nightly.yml`; not executed in this pass,
+  which needs a running stack.
+- **Playwright end-to-end and axe.** Not in any CI — the SPA has no workflow yet (F-07);
+  not executed here.
+- **The MySQL path.** Everything was verified against SQLite. The MySQL job is written and
+  has not run.
+- **Query shape.** No N+1 sweep across the user, role and activity-log list endpoints, and
+  no index review. This is the largest remaining performance item.
+- **Per-module coverage floors** for the security-critical modules — proposed in the plan,
+  not implemented. The global floor moved 40 → 48.
+- **The `async def` helpers the AST gate cannot see.** It does not follow calls; the session
+  lookup in `JWTAuthMiddleware.dispatch` was found by reading (F-29). There may be others.
+
+---
+
+# Part 2 — the adversarial review of Part 1
+
+Everything above was written with a green suite (872 passed) and reported as done. That is
+not the same as correct, so the changes were then put through an adversarial review: five
+independent lenses over the diff, each finding attacked by both a skeptic and a reproducer,
+only survivors kept. 22 findings survived. Three were serious, and **the most serious thing
+in this document is in this half, not the first.**
+
+The lesson is worth stating plainly rather than burying: *the suite passing is what let all
+of this through.* A green gate is evidence that the cases someone thought of still hold. It
+is not evidence that the change is right.
+
+## F-14 — Host-header path confusion: a complete authentication bypass · **security, critical** · FIXED
+
+`routes/auth_middleware.py:113` (pre-existing — **not** introduced by this pass)
+
+`JWTAuthMiddleware` decided its allow-list with `request.url.path`. Starlette builds
+`request.url` by re-parsing `f"{scheme}://{host}{path}"` using the **Host header**, which
+the caller controls, while the router dispatches on `scope["path"]`.
+
+```
+$ probe
+scope['path']     = /api/v1/users
+request.url.path  = /api/v1/health/api/v1/users     <- with Host: x/api/v1/health
+startswith('/api/v1/health') -> True
+```
+
+End to end, against the real app:
+
+```
+/users             no-token=401   with spoofed Host=200
+```
+
+**200 with no token**, disclosing every user account. It was present before this pass and my own `RateLimitMiddleware` and
+`SecurityHeadersMiddleware` copied the same pattern — one bug, three symptoms (F-15, F-16).
+
+The route-inventory test in Part 1 did **not** catch it, because it only ever sends a
+normal request. That is the honest measure of what that gate was worth on the day it
+landed.
+
+**Fix.** All three middlewares read `request.scope["path"]`. **Proof.**
+`tests/unit/test_route_inventory.py::TestPathConfusion`, which also asserts the forgery
+still moves `request.url.path` — so the test cannot start passing because the attack
+stopped working rather than because the fix does.
+
+## F-15 — the same confusion removed the rate limit entirely · **security, high** · FIXED
+
+`core/middleware.py:177`. `Host: x/api/v1/health` made every path look like a health probe,
+so nothing was limited. Introduced by this pass. Same fix, same test.
+
+## F-16 — and let a caller drop the CSP header · **security, low** · FIXED
+
+`core/middleware.py:119`. The `/docs` exemption was decided the same way. Same fix.
+
+## F-20 — the rate limiter put every client in one bucket · **security, high** · FIXED
+
+`core/middleware.py:172`. `nginx.conf` proxies `/api/` to this service and
+`docker-compose.yml` exposes only the SPA container, so **every browser request arrives
+from the nginx container's address** — one bucket, in which any unauthenticated client
+could exhaust the 10/min login budget for every user at once. A denial of service created
+by the control meant to prevent one. Introduced by this pass.
+
+**Fix.** `TRUST_PROXY_HEADERS` (boolean) is replaced by `TRUSTED_PROXY_IPS` (CIDR
+allow-list), because neither setting of a boolean is correct: believing `X-Forwarded-For`
+unconditionally hands an attacker a fresh bucket per request; ignoring it creates the shared
+bucket. Believing it only when the *peer* is a named proxy is neither. The **right-most**
+non-proxy hop is used, because nginx's `$proxy_add_x_forwarded_for` appends the peer to
+whatever the client sent — the left-most entry is attacker-supplied. `docker-compose.yml`
+sets it for the shipped topology.
+
+## F-21 — eight settings were documented and never delivered · **workflow, medium** · FIXED
+
+`docker-compose.yml`. compose passes only the keys its `environment:` block names. Eight
+were readable and documented and absent from it — including `PASSWORD_MIN_LENGTH`,
+`AUTH_MAX_FAILED_LOGIN_ATTEMPTS` and `AUTH_LOCKOUT_MINUTES`. An operator could tighten the
+password policy in `.env`, restart, and get the shipped default with nothing saying so.
+
+**Fix + proof.** All forwarded, plus `tests/unit/test_settings_delivery.py`: every setting
+`core/config.py` reads must appear in `.env.example` *and* in the compose environment
+block, or be exempted with a reason. Adding a setting now costs three lines at the moment
+it is added instead of an incident later.
+
+## F-22 — two gates I built could not fail · **workflow, medium** · FIXED
+
+* *(The first was a CI assertion on the original product's demo command — a `grep -c` that
+  counted a JSON summary line as a row, so `-ge` tolerated losing a real one. It was removed
+  with the domain; the lesson is the same as the second's.)*
+* **The "no `.env` in the image" step could not fail.** A fresh `actions/checkout` contains
+  no `.env`, so the build context had nothing to leak whatever `.dockerignore` said. It
+  proved the checkout was clean. Now it plants a decoy, rebuilds, asserts it stayed out —
+  **and** runs a negative control with `.dockerignore` removed that must leak, or the
+  assertion above is declared vacuous.
+
+## F-23 — the blocking-DB gate matched on shape, not on behaviour · **workflow, medium** · FIXED
+
+`tests/unit/test_no_blocking_db_calls.py:69`. Any nested `def` counted as offloaded, with
+no check that it reaches `asyncio.to_thread`. Deleting the `await asyncio.to_thread(...)`
+and calling `_load()` directly left the gate green and every query back on the event loop —
+the single edit that breaks the pattern was the one edit the gate could not see. It now
+records which nested functions are handed to a thread and exempts only those, with a test
+for both directions.
+
+## F-26 — the secret canary's docstring overclaimed · **docs, medium** · FIXED
+
+`tests/integration/test_secret_canary.py` (as found). Walking `Base.metadata` guarantees the
+scan *reaches* every table; it does not put a row in one. The scenario filled a minority of
+the tables, so the assertions over the rest were true and empty. The docstring now says
+exactly that, and `test_the_scan_is_not_vacuous` pins which tables actually held data — a
+check that survived the canary being rewritten for this base.
+
+## F-27 — the route inventory silently skipped method-less routes · **workflow, medium** · FIXED
+
+`tests/unit/test_route_inventory.py:85`. `if path and methods:` dropped `APIWebSocketRoute`
+and `Mount`. There are none today — but `JWTAuthMiddleware` is a `BaseHTTPMiddleware` and
+by its own docstring never sees a websocket scope, so such a route would be both
+unauthenticated and uninventoried with every test still green. It now fails on any
+method-less route, forcing the decision rather than skipping it.
+
+## F-28 — the secret scanner missed the `*.env` shape · **security hygiene, low** · FIXED
+
+`scripts/check_staged_secrets.py:28`. `(^|/)\.env($|\.)` requires the literal `.env` at a
+segment start, so `prod.env` and `deploy/dev.env` walked through — the exact "a rename"
+case the module docstring names as its reason to exist, and a shape `.gitignore` already
+lists. Both forms are now refused.
+
+## F-29 — the hottest blocking query in the service is on the event loop · **performance, medium** · FIXED
+
+`routes/auth_middleware.py:138` (pre-existing)
+
+`JWTAuthMiddleware.dispatch` is an `async def` that opens `SessionLocal()` and runs
+`assert_session_is_live` — a `db.query(UserSession).filter(...).first()` against what its
+own docstring calls "an unindexed VARCHAR(1024) that every authenticated request already
+full-scans once" — **on the event loop, for every authenticated request in the service**.
+
+The gate from Part 1 reported green over it, twice over: the query is one call frame away
+inside a helper, and `db.close()` is not in `SESSION_METHODS`. It is the single highest-
+frequency instance of exactly the defect that gate exists to find, and the gate could not
+see it.
+
+**Fix.** The session open, the query and the close move into a nested `def` handed to
+`asyncio.to_thread` — which also brings it inside the strengthened gate's reach. The thread
+hop costs tens of microseconds against a full table scan, so the trade is not close.
+
+## Where the next hour goes
+
+1. Run `make audit`, and flip the audits to gating. *(Done 2026-08-27 — SEC-9.)*
+2. Cover the identity services with tests that need no database — that is the gap between
+   the unit-only and the full-suite coverage, and it is where the coverage floor is stuck.
+3. The N+1 sweep and an index review on the user, role and activity-log endpoints.
+4. Shrink `ruff-suppressions.json`: `UP045` and `UP017` are mechanical and entirely
+   auto-fixable, and were the largest share of the ledger when this was written — one
+   reviewed commit.
