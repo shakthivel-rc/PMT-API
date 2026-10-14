@@ -141,6 +141,8 @@ services:
       # .env.example. ANTHROPIC_API_KEY is deliberately NOT here: this process never calls
       # the model, so it never holds the key. Only `ai-worker` below does.
       GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+      GITLAB_WEBHOOK_SECRET: ${GITLAB_WEBHOOK_SECRET:-}
+      BITBUCKET_WEBHOOK_SECRET: ${BITBUCKET_WEBHOOK_SECRET:-}
       AI_ENABLED: ${AI_ENABLED:-false}
       AI_MODEL: ${AI_MODEL:-claude-opus-5}
       AI_EFFORT: ${AI_EFFORT:-high}
@@ -221,7 +223,7 @@ services:
 
   app:
     build:
-      context: ../pmt-app
+      context: ${APP_DIR:-../pmt-app}
     restart: unless-stopped
     depends_on:
       api:

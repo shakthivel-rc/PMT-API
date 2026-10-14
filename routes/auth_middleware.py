@@ -30,6 +30,8 @@ UNAUTHENTICATED_ROUTES = [
     # Authenticates itself with an HMAC signature over the raw body; see
     # routes/integrations.py and the PUBLIC entry in tests/unit/test_route_inventory.py.
     "/integrations/github/webhook",
+    "/integrations/gitlab/webhook",
+    "/integrations/bitbucket/webhook",
 ]
 # Exact paths, not prefixes, for everything except the health probes: a prefix would exempt
 # anything anyone later hangs underneath it, and the person adding that endpoint would have no

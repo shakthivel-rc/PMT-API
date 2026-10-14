@@ -23,6 +23,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    Numeric,
     String,
     UniqueConstraint,
 )
@@ -52,6 +53,9 @@ class Workspace(Base):
     # does not constrain its contents, so every write goes through a pydantic model first
     # (schemas/time_tracking.TimeTrackingSettings) and every read through the same model.
     settings = Column(JSON, nullable=True)
+    # Currency and default billing rate for financial tracking
+    currency = Column(String(3), nullable=False, default="USD")
+    default_billing_rate = Column(Numeric(10, 2), nullable=True)
     created_at = Column(DateTime, default=_now, nullable=False)
     updated_at = Column(DateTime, default=_now, onupdate=_now, nullable=False)
     deleted = Column(Integer, nullable=False, default=0)
@@ -71,3 +75,15 @@ class WorkspaceMember(Base):
     user_id = Column(CHAR(36), ForeignKey("users.id"), nullable=False, index=True)
     role = Column(String(20), nullable=False, default="member")
     created_at = Column(DateTime, default=_now, nullable=False)
+
+
+class WorkspaceMemberRate(Base):
+    """Hourly billing rate override for a team member within a workspace."""
+
+    __tablename__ = "workspace_member_rates"
+
+    workspace_id = Column(CHAR(36), ForeignKey("workspaces.id"), primary_key=True)
+    user_id = Column(CHAR(36), ForeignKey("users.id"), primary_key=True)
+    hourly_rate = Column(Numeric(10, 2), nullable=False)
+    created_at = Column(DateTime, default=_now, nullable=False)
+    updated_at = Column(DateTime, default=_now, onupdate=_now, nullable=False)

@@ -105,6 +105,8 @@ class Settings:
     # against), and with AI off the summary endpoint answers 503 instead of queueing work
     # no worker will ever take.
     github_webhook_secret: str = ""
+    gitlab_webhook_secret: str = ""
+    bitbucket_webhook_secret: str = ""
     ai_enabled: bool = False
     ai_model: str = "claude-opus-5"
     ai_effort: str = "high"
@@ -243,6 +245,8 @@ def get_settings() -> Settings:
         # ever recognise. See core/redact.py.
         log_extra_secrets=_optional_csv("LOG_EXTRA_SECRETS"),
         github_webhook_secret=os.getenv("GITHUB_WEBHOOK_SECRET", "").strip(),
+        gitlab_webhook_secret=os.getenv("GITLAB_WEBHOOK_SECRET", "").strip(),
+        bitbucket_webhook_secret=os.getenv("BITBUCKET_WEBHOOK_SECRET", "").strip(),
         ai_enabled=_optional_bool("AI_ENABLED", False),
         ai_model=os.getenv("AI_MODEL", "claude-opus-5").strip(),
         ai_effort=os.getenv("AI_EFFORT", "high").strip().lower(),

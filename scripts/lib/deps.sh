@@ -64,6 +64,18 @@ nx_sudo_prefix() {
     return 1
 }
 
+# Ensure sudo credentials are authenticated with an interactive prompt before
+# background/redirected commands run, preventing silent hangs.
+nx_ensure_sudo() {
+    [ "$(id -u 2>/dev/null || echo 1000)" = "0" ] && return 0
+    nx_have sudo || return 1
+    if sudo -n true 2>/dev/null; then
+        return 0
+    fi
+    nx_info "Administrator (sudo) privileges required. Please authenticate if prompted:"
+    sudo -v || return 1
+}
+
 # --- installing -------------------------------------------------------------------------
 
 # Concrete package name for a logical one, under a given manager. An empty answer means
@@ -75,11 +87,23 @@ nx_package_name() {
         *:git)                  printf 'git' ;;
 
         brew:python)            printf 'python@3.12' ;;
-        apt:python)             printf 'python3' ;;
+        apt:python)
+            if nx_have apt-cache && apt-cache show python3.12 >/dev/null 2>&1; then
+                printf 'python3.12'
+            else
+                printf 'python3'
+            fi
+            ;;
         pacman:python)          printf 'python' ;;
         *:python)               printf 'python3' ;;
 
-        apt:python-venv)        printf 'python3-venv' ;;
+        apt:python-venv)
+            if nx_have apt-cache && apt-cache show python3.12-venv >/dev/null 2>&1; then
+                printf 'python3.12-venv'
+            else
+                printf 'python3-venv'
+            fi
+            ;;
         *:python-venv)          printf '' ;;
 
         apt:python-dev)         printf 'python3-dev' ;;
@@ -105,6 +129,14 @@ nx_package_name() {
         dnf:mysql-server|yum:mysql-server) printf 'mysql-server' ;;
         brew:mysql-server)      printf 'mysql' ;;
         *:mysql-server)         printf '' ;;
+
+        brew:docker)            printf 'docker docker-compose' ;;
+        apt:docker)             printf 'docker.io docker-compose-v2' ;;
+        dnf:docker|yum:docker)  printf 'docker docker-compose' ;;
+        pacman:docker)          printf 'docker docker-compose' ;;
+        apk:docker)             printf 'docker docker-cli-compose' ;;
+        zypper:docker)          printf 'docker docker-compose' ;;
+        *:docker)               printf '' ;;
 
         apt:compose-plugin)     printf 'docker-compose-plugin' ;;
         dnf:compose-plugin|yum:compose-plugin) printf 'docker-compose-plugin' ;;
@@ -151,6 +183,8 @@ nx_install() {
     elif ! prefix="$(nx_sudo_prefix)"; then
         nx_warn "root is needed to install${names}, and neither sudo nor a root shell is available."
         return 1
+    else
+        nx_ensure_sudo || return 1
     fi
 
     case "$manager" in
@@ -283,6 +317,10 @@ nx_start_docker_daemon() {
                 open -a Docker >/dev/null 2>&1 || return 1
                 return 0
             fi
+            if nx_have colima; then
+                nx_fix "starting colima"
+                colima start >/dev/null 2>&1 && return 0
+            fi
             return 1
             ;;
         windows)
@@ -295,6 +333,7 @@ nx_start_docker_daemon() {
             ;;
         linux)
             prefix="$(nx_sudo_prefix)" || return 1
+            nx_ensure_sudo || return 1
             if nx_have systemctl; then
                 nx_fix "starting the Docker service"
                 # shellcheck disable=SC2086
@@ -312,17 +351,87 @@ nx_start_docker_daemon() {
     return 1
 }
 
+# Install Docker and Docker Compose on the host operating system.
+nx_install_docker() {
+    local manager="" prefix=""
+    manager="$(nx_pkg_manager)"
+    nx_fix "installing Docker and Docker Compose for $(nx_os) via ${manager}"
+
+    if [ "$manager" = "brew" ]; then
+        if brew install --cask docker; then
+            nx_ok "Docker Desktop installed via Homebrew"
+            nx_start_docker_daemon || true
+            return 0
+        elif brew install docker docker-compose colima; then
+            nx_ok "Docker CLI and Colima installed via Homebrew"
+            colima start >/dev/null 2>&1 || true
+            return 0
+        fi
+        return 1
+    fi
+
+    if [ "$(nx_os)" = "windows" ]; then
+        if nx_have winget; then
+            nx_fix "winget install --id Docker.DockerDesktop"
+            winget install --id Docker.DockerDesktop --silent --accept-package-agreements --accept-source-agreements || return 1
+            nx_ok "Docker Desktop installed"
+            return 0
+        fi
+        return 1
+    fi
+
+    # Linux package managers
+    if ! nx_install docker; then
+        if [ "$manager" = "apt" ]; then
+            nx_ensure_sudo || return 1
+            prefix="$(nx_sudo_prefix)"
+            # shellcheck disable=SC2086
+            $prefix apt-get update >/dev/null 2>&1 || true
+            # shellcheck disable=SC2086
+            $prefix apt-get install -y --no-install-recommends docker.io docker-compose-plugin >/dev/null 2>&1 \
+                || $prefix apt-get install -y --no-install-recommends docker.io docker-compose >/dev/null 2>&1 \
+                || return 1
+        else
+            return 1
+        fi
+    fi
+
+    if [ "$(nx_os)" = "linux" ]; then
+        nx_start_docker_daemon || true
+        if [ "$(id -u 2>/dev/null || echo 1000)" != "0" ] && [ -n "${USER:-}" ]; then
+            nx_ensure_sudo || true
+            prefix="$(nx_sudo_prefix)"
+            # shellcheck disable=SC2086
+            $prefix usermod -aG docker "$USER" 2>/dev/null || true
+        fi
+    fi
+    return 0
+}
+
 # Can this machine run the stack in Docker? Sets NX_DOCKER and NX_COMPOSE on success.
 #
-# The three failures below are not variations on "Docker is broken" — they need three
-# different repairs, and telling them apart is the whole job:
-#   * the CLI is absent            → nothing here can fix it; the caller falls back to native
+# The failures below are handled with distinct repairs:
+#   * the CLI is absent            → offer to install Docker, or fall back to native
 #   * the daemon is not running    → start it and wait
 #   * the socket refuses this user → run through sudo now, and offer the group fix for later
 nx_docker_ready() {
     local probe="" waited=0
 
-    nx_have docker || return 1
+    if ! nx_have docker; then
+        if [ "${MODE:-auto}" = "docker" ] || [ "${MODE:-auto}" = "auto" ]; then
+            if [ "${SETUP_AUTO_INSTALL:-1}" != "0" ]; then
+                if nx_confirm "Docker is not installed. Would you like setup to install Docker and Docker Compose?"; then
+                    nx_install_docker || return 1
+                else
+                    return 1
+                fi
+            else
+                return 1
+            fi
+        else
+            return 1
+        fi
+    fi
 
     if docker info >/dev/null 2>&1; then
         NX_DOCKER="docker"
@@ -335,28 +444,25 @@ nx_docker_ready() {
     case "$probe" in
         *"permission denied"*|*"Got permission denied"*|*"connect: permission denied"*)
             nx_warn "the Docker socket refuses this user — you are not in the 'docker' group"
-            if nx_have sudo && sudo docker info >/dev/null 2>&1; then
-                NX_DOCKER="sudo docker"
-                nx_fix "using 'sudo docker' for this run"
-                nx_info "To stop needing sudo:  sudo usermod -aG docker \"\$USER\"  then log out and back in."
-                nx_compose_ready
-                return $?
+            if nx_have sudo; then
+                nx_ensure_sudo || true
+                if sudo docker info >/dev/null 2>&1; then
+                    NX_DOCKER="sudo docker"
+                    nx_fix "using 'sudo docker' for this run"
+                    nx_info "To stop needing sudo:  sudo usermod -aG docker \"\$USER\"  then log out and back in."
+                    nx_compose_ready
+                    return $?
+                fi
             fi
             return 1
             ;;
     esac
 
-    # Anything else is the daemon not being up. Try to start it, then wait — Docker Desktop
-    # in particular reports nothing useful for the first 20-30 seconds of its launch.
-    # No advice here about what to do instead. This function is called from two places —
-    # the toolchain step, which falls back to a native install, and the native database
-    # step, which falls back to a local MySQL — and each has a different next move. Telling
-    # the operator to "re-run with make setup-native" in the middle of a native run is
-    # worse than saying nothing.
+    # Anything else is the daemon not being up. Try to start it, then wait.
     nx_warn "the Docker daemon is not responding"
     nx_start_docker_daemon || return 1
 
-    while [ "$waited" -lt 120 ]; do
+    while [ "$waited" -lt 60 ]; do
         if docker info >/dev/null 2>&1; then
             nx_ok "Docker is up"
             NX_DOCKER="docker"
@@ -365,10 +471,10 @@ nx_docker_ready() {
         fi
         sleep 3
         waited=$((waited + 3))
-        [ $((waited % 30)) -eq 0 ] && nx_dim "still waiting for Docker (${waited}s)"
+        [ $((waited % 15)) -eq 0 ] && nx_dim "still waiting for Docker (${waited}s / 60s)"
     done
 
-    nx_warn "Docker did not come up within two minutes"
+    nx_warn "Docker did not come up within 60 seconds"
     return 1
 }
 

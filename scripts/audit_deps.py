@@ -44,6 +44,8 @@ from datetime import date
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 EXCEPTIONS = ROOT / "docs" / "security-exceptions.md"
 APP_DIR = ROOT.parent / "pmt-app"
+if not APP_DIR.exists() and (ROOT.parent / "PMT-APP").exists():
+    APP_DIR = ROOT.parent / "PMT-APP"
 
 #: A waiver row in `docs/security-exceptions.md`. The table is the source of truth and this
 #: regex is the only thing that reads it, so the format is pinned here and in that file's

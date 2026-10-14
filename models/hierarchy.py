@@ -28,6 +28,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -102,6 +103,15 @@ class Space(Base):
     # A document, validated by `schemas/workspaces.SpaceCharter` on every write and read —
     # the column does not constrain it, exactly like `workspaces.settings`.
     charter = Column(JSON, nullable=True)
+
+    # ---- financial budget (Phase 1) --------------------------------------------------------
+    budget_amount = Column(Numeric(12, 2), nullable=True)
+    budget_alert_threshold = Column(Integer, nullable=False, default=80, server_default="80")
+
+    # ---- AI Autonomous Agents (Phase 3) ----------------------------------------------------
+    ai_triage_enabled = Column(Boolean, nullable=False, default=True, server_default=text("1"))
+    ai_standup_enabled = Column(Boolean, nullable=False, default=True, server_default=text("1"))
+    ai_retrospective_enabled = Column(Boolean, nullable=False, default=True, server_default=text("1"))
 
     # ---- write state (09-restructuring.md §3.4) -------------------------------------------
     archived_at = Column(DateTime, nullable=True)

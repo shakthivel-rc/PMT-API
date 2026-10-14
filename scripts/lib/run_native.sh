@@ -142,6 +142,10 @@ except Exception as exc:
 nx_database_via_docker() {
     local port="" waited=0 container=""
 
+    # If the Docker engine is not already active, do not wait or attempt to start it during native setup
+    if ! docker info >/dev/null 2>&1; then
+        return 1
+    fi
     nx_docker_ready || return 1
 
     nx_settle_port MYSQL_PORT 3307 "the database" "$ENV_FILE" "$PROJECT" || return 1
@@ -198,6 +202,7 @@ nx_database_via_package() {
         brew services start mysql >/dev/null 2>&1 || true
     else
         prefix="$(nx_sudo_prefix)" || return 1
+        nx_ensure_sudo || return 1
         if nx_have systemctl; then
             # shellcheck disable=SC2086
             $prefix systemctl start mysql >/dev/null 2>&1 || $prefix systemctl start mysqld >/dev/null 2>&1 || true

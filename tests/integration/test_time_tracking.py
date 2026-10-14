@@ -81,7 +81,9 @@ class TestTenancy:
         assert client.post(f"/workspaces/{ws_a}/issues/{theirs['id']}/timer", json={},
                            headers=headers_a).status_code == 404
         listed = pm.ok(client.get(f"/workspaces/{ws_a}/time-entries", headers=headers_a))
-        assert listed == {"records": [], "total": 0, "total_seconds": 0}
+        assert listed["records"] == []
+        assert listed["total"] == 0
+        assert listed["total_seconds"] == 0
 
 
 class TestLogging:

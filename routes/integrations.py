@@ -89,6 +89,92 @@ async def receive_github_webhook(
     return SuccessResponse(status_code=200, message="Delivery processed", data=result)
 
 
+@router.post(
+    "/gitlab/webhook",
+    response_model=SuccessResponse[dict],
+    responses={
+        400: {"model": ErrorResponse, "description": "Not a well-formed GitLab delivery."},
+        401: {"model": ErrorResponse, "description": "Token is missing or wrong."},
+        413: {"model": ErrorResponse, "description": "Body over MAX_REQUEST_BODY_BYTES."},
+        429: {"model": ErrorResponse, "description": "Rate limited, per source address."},
+    },
+    summary="Receive a GitLab webhook delivery",
+    operation_id="receive_gitlab_webhook",
+)
+async def receive_gitlab_webhook(
+    request: Request,
+    db: Session = Depends(get_db),
+    x_gitlab_event: str | None = Header(None),
+    x_gitlab_token: str | None = Header(None),
+    x_gitlab_delivery: str | None = Header(None),
+):
+    """Receives GitLab merge requests, pipelines, and deployments."""
+    from integrations.gitlab import verify_gitlab_token
+    from controllers.vcs_controller import apply_gitlab_delivery
+
+    body = await request.body()
+    if not verify_gitlab_token(get_settings().gitlab_webhook_secret, x_gitlab_token):
+        logger.warning("gitlab delivery refused: bad or missing token")
+        return error_json(401, "The GitLab token did not verify.")
+
+    delivery_id = x_gitlab_delivery or str(hash(body))[:32]
+    try:
+        payload = json.loads(body)
+    except ValueError:
+        return error_json(400, "The body is not JSON.")
+    if not isinstance(payload, dict):
+        return error_json(400, "The body is not a JSON object.")
+
+    def _apply() -> dict:
+        return apply_gitlab_delivery(db, x_gitlab_event, delivery_id, payload)
+
+    result = await asyncio.to_thread(_apply)
+    return SuccessResponse(status_code=200, message="GitLab delivery processed", data=result)
+
+
+@router.post(
+    "/bitbucket/webhook",
+    response_model=SuccessResponse[dict],
+    responses={
+        400: {"model": ErrorResponse, "description": "Not a well-formed Bitbucket delivery."},
+        401: {"model": ErrorResponse, "description": "Signature is missing or wrong."},
+        413: {"model": ErrorResponse, "description": "Body over MAX_REQUEST_BODY_BYTES."},
+        429: {"model": ErrorResponse, "description": "Rate limited, per source address."},
+    },
+    summary="Receive a Bitbucket webhook delivery",
+    operation_id="receive_bitbucket_webhook",
+)
+async def receive_bitbucket_webhook(
+    request: Request,
+    db: Session = Depends(get_db),
+    x_event_key: str | None = Header(None),
+    x_hub_signature: str | None = Header(None),
+    x_hook_uuid: str | None = Header(None),
+):
+    """Receives Bitbucket pull requests and commit status events."""
+    from integrations.bitbucket import verify_bitbucket_signature
+    from controllers.vcs_controller import apply_bitbucket_delivery
+
+    body = await request.body()
+    if not verify_bitbucket_signature(get_settings().bitbucket_webhook_secret, body, x_hub_signature):
+        logger.warning("bitbucket delivery refused: bad or missing signature")
+        return error_json(401, "The Bitbucket signature did not verify.")
+
+    delivery_id = x_hook_uuid or str(hash(body))[:32]
+    try:
+        payload = json.loads(body)
+    except ValueError:
+        return error_json(400, "The body is not JSON.")
+    if not isinstance(payload, dict):
+        return error_json(400, "The body is not a JSON object.")
+
+    def _apply() -> dict:
+        return apply_bitbucket_delivery(db, x_event_key, delivery_id, payload)
+
+    result = await asyncio.to_thread(_apply)
+    return SuccessResponse(status_code=200, message="Bitbucket delivery processed", data=result)
+
+
 @admin_router.get(
     "/deferred",
     response_model=SuccessResponse[list[DeferredDelivery]],

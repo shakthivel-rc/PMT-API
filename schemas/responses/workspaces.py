@@ -145,6 +145,12 @@ class SpaceNode(BaseModel):
                                                 "every publish whatever this says.")
     folders: list[FolderNode] = Field(description="Folders, in position order.")
     lists: list[ListNode] = Field(description="Lists that sit directly on the space.")
+    budget_amount: float | None = Field(default=None, description="Financial budget ceiling.")
+    budget_alert_threshold: int | None = Field(default=80, description="Alert percentage threshold.")
+    budget_spent: float | None = Field(default=None, description="Total cost amount logged in this space.")
+    ai_triage_enabled: bool = Field(default=True, description="Whether autonomous bug triage is enabled.")
+    ai_standup_enabled: bool = Field(default=True, description="Whether automated async daily standups are enabled.")
+    ai_retrospective_enabled: bool = Field(default=True, description="Whether automated sprint retrospectives are enabled.")
 
 
 class SpaceDetail(SpaceNode):

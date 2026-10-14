@@ -64,6 +64,14 @@ PUBLIC: dict[str, str] = {
         "refused when no secret is configured (integrations/github.verify_signature; "
         "tests/integration/test_github_webhook.py)."
     ),
+    "/integrations/gitlab/webhook": (
+        "GitLab cannot hold a session. Authenticated via X-Gitlab-Token header matching "
+        "GITLAB_WEBHOOK_SECRET in constant time."
+    ),
+    "/integrations/bitbucket/webhook": (
+        "Bitbucket cannot hold a session. Authenticated via X-Hub-Signature HMAC-SHA256 of "
+        "raw body under BITBUCKET_WEBHOOK_SECRET in constant time."
+    ),
 
     # --- operational ------------------------------------------------------------------
     "/api/v1/health/live": "liveness probe; must answer before anything else works",

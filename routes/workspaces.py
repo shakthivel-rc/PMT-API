@@ -22,6 +22,7 @@ from db.session import get_db
 from dependencies.workspace import WorkspaceAccess, as_admin, as_guest, caller_id
 from schemas.errors import COMMON_ERRORS, VALIDATION_ERROR
 from schemas.governance import GovernanceSettings, GovernanceSettingsUpdate
+from schemas.rates import WorkspaceRatesResponse, WorkspaceRatesUpdate
 from schemas.response import ErrorResponse, SuccessResponse
 from schemas.responses.workspaces import (
     FolderNode,
@@ -306,6 +307,33 @@ def update_governance(body: GovernanceSettingsUpdate, request: Request,
     """Admins. Only the fields present change. `default_workflow_template` must name a
     template that exists here and can be applied. Audited."""
     return ctl.update_governance(access, body, db, request)
+
+
+@router.get(
+    "/{workspace_id}/settings/rates",
+    response_model=SuccessResponse[WorkspaceRatesResponse],
+    responses={**COMMON_ERRORS, **NOT_A_MEMBER},
+    summary="Get workspace financial currency and member hourly rates",
+    operation_id="get_workspace_rates",
+)
+def get_rates(access: WorkspaceAccess = Depends(as_guest),
+              db: Session = Depends(get_db)):
+    """Currency, default rate, and member rate overrides for financial accounting."""
+    return ctl.get_rates(access, db)
+
+
+@router.put(
+    "/{workspace_id}/settings/rates",
+    response_model=SuccessResponse[WorkspaceRatesResponse],
+    responses={**COMMON_ERRORS, **VALIDATION_ERROR, **NOT_A_MEMBER},
+    summary="Update workspace currency, default rate, or member rate overrides",
+    operation_id="update_workspace_rates",
+)
+def update_rates(body: WorkspaceRatesUpdate, request: Request,
+                 access: WorkspaceAccess = Depends(as_admin),
+                 db: Session = Depends(get_db)):
+    """Admins. Update currency code, default billing rate, or member overrides. Audited."""
+    return ctl.update_rates(access, body, db, request)
 
 
 @router.post(

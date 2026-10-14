@@ -14,7 +14,7 @@ from sqlalchemy import CHAR, JSON, Column, DateTime, ForeignKey, Index, String, 
 
 from db.session import Base
 
-VCS_PROVIDERS: tuple[str, ...] = ("github",)
+VCS_PROVIDERS: tuple[str, ...] = ("github", "gitlab", "bitbucket")
 #: What became of a delivery (docs/design/09-restructuring.md §6.3). `deferred`: it named an
 #: issue in a space frozen for a migration, so it was kept, payload and all, to be applied
 #: when the space is unfrozen; `replayed` once it has been; `failed` if the replay raised.

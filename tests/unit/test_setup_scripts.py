@@ -329,10 +329,15 @@ class TestLineEndings:
 
     @pytest.mark.parametrize("repo", ["pmt-api", "pmt-app"])
     def test_shell_scripts_are_pinned_to_lf(self, repo):
-        root = API_DIR if repo == "pmt-api" else API_DIR.parent / repo
+        if repo == "pmt-api":
+            root = API_DIR
+        else:
+            root = API_DIR.parent / repo
+            if not root.exists() and (API_DIR.parent / "PMT-APP").exists():
+                root = API_DIR.parent / "PMT-APP"
         attributes = root / ".gitattributes"
-        if repo == "pmt-app" and not attributes.exists():
-            pytest.skip("pmt-app is not checked out beside this repository")
+        if not attributes.exists():
+            pytest.skip(f"{repo} is not checked out beside this repository")
         assert attributes.exists(), f"{repo}/.gitattributes is missing"
         text = attributes.read_text()
         assert "*.sh" in text and "eol=lf" in text

@@ -59,6 +59,10 @@ def _load_metadata():
         "models.release",
         "models.saved_view",
         "models.storage",
+        "models.poker",
+        "models.ai_agents",
+        "models.initiative",
+        "models.deployment",
     ):
         importlib.import_module(module)
     return db_session.Base.metadata

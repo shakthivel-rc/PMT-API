@@ -36,8 +36,9 @@ from sqlalchemy.orm import Session
 from dependencies.workspace import WorkspaceAccess
 from models.user import User
 from models.vcs import VcsRepository
-from models.workspace import Workspace, WorkspaceMember
+from models.workspace import Workspace, WorkspaceMember, WorkspaceMemberRate
 from schemas.governance import GovernanceSettings, GovernanceSettingsUpdate
+from schemas.rates import MemberRateItem, WorkspaceRatesResponse, WorkspaceRatesUpdate
 from schemas.response import SuccessResponse, error_json
 from schemas.workspaces import (
     FolderCreate,
@@ -374,7 +375,12 @@ def create_space(access: WorkspaceAccess, body: SpaceCreate, db: Session, reques
         space = svc.create_space(
             db, workspace_id, body.name, body.key, definition,
             description=_blank_is_none(body.description), owner_id=body.owner_id,
-            delivery_method=body.delivery_method, charter=svc.charter_document(body.charter))
+            delivery_method=body.delivery_method, charter=svc.charter_document(body.charter),
+            budget_amount=body.budget_amount,
+            budget_alert_threshold=body.budget_alert_threshold,
+            ai_triage_enabled=body.ai_triage_enabled if body.ai_triage_enabled is not None else True,
+            ai_standup_enabled=body.ai_standup_enabled if body.ai_standup_enabled is not None else True,
+            ai_retrospective_enabled=body.ai_retrospective_enabled if body.ai_retrospective_enabled is not None else True)
         space_id = str(space.id)
         for name in body.initial_lists:
             svc.create_list(db, workspace_id, space_id, None, name)
@@ -463,6 +469,21 @@ def update_space(access: WorkspaceAccess, space_id: str, body: SpaceUpdate, db: 
             if document != space.charter:
                 space.charter = document
                 changes.append("charter")
+        if "budget_amount" in fields and body.budget_amount != space.budget_amount:
+            space.budget_amount = body.budget_amount
+            changes.append(f"budget_amount {body.budget_amount}")
+        if "budget_alert_threshold" in fields and body.budget_alert_threshold != space.budget_alert_threshold:
+            space.budget_alert_threshold = body.budget_alert_threshold or 80
+            changes.append(f"budget_alert_threshold {body.budget_alert_threshold}")
+        if "ai_triage_enabled" in fields and body.ai_triage_enabled is not None:
+            space.ai_triage_enabled = body.ai_triage_enabled
+            changes.append(f"ai_triage_enabled {body.ai_triage_enabled}")
+        if "ai_standup_enabled" in fields and body.ai_standup_enabled is not None:
+            space.ai_standup_enabled = body.ai_standup_enabled
+            changes.append(f"ai_standup_enabled {body.ai_standup_enabled}")
+        if "ai_retrospective_enabled" in fields and body.ai_retrospective_enabled is not None:
+            space.ai_retrospective_enabled = body.ai_retrospective_enabled
+            changes.append(f"ai_retrospective_enabled {body.ai_retrospective_enabled}")
         if changes:
             _audit(db, request, access.user_id, "UPDATE", "space", str(space.id),
                    f"Updated space {space.key}: {'; '.join(changes)}")
@@ -790,6 +811,94 @@ def update_governance(access: WorkspaceAccess, body: GovernanceSettingsUpdate, d
     db.commit()
     return SuccessResponse(status_code=200, message="Governance settings saved",
                            data=updated.model_dump())
+
+
+# ---- financial rates (Phase 1) -----------------------------------------------------------
+
+
+def get_rates(access: WorkspaceAccess, db: Session):
+    workspace = svc.get_workspace(db, access.workspace_id)
+    if workspace is None:
+        return error_json(404, "Workspace not found")
+
+    rate_rows = (
+        db.query(WorkspaceMemberRate)
+        .filter(WorkspaceMemberRate.workspace_id == access.workspace_id)
+        .all()
+    )
+    rates_by_user = {str(r.user_id): float(r.hourly_rate) for r in rate_rows}
+
+    member_pairs = svc.members(db, access.workspace_id)
+    items = []
+    for m, u in member_pairs:
+        uid = str(u.id)
+        display = f"{u.first_name or ''} {u.last_name or ''}".strip() or u.email
+        items.append({
+            "user_id": uid,
+            "email": u.email,
+            "display_name": display,
+            "role": m.role,
+            "hourly_rate": rates_by_user.get(uid),
+        })
+
+    return SuccessResponse(
+        status_code=200,
+        message="Workspace rates fetched",
+        data={
+            "currency": workspace.currency or "USD",
+            "default_billing_rate": float(workspace.default_billing_rate) if workspace.default_billing_rate is not None else None,
+            "member_rates": items,
+        },
+    )
+
+
+def update_rates(access: WorkspaceAccess, body: WorkspaceRatesUpdate, db: Session, request: Request):
+    workspace = svc.get_workspace(db, access.workspace_id)
+    if workspace is None:
+        return error_json(404, "Workspace not found")
+
+    changes: list[str] = []
+    if body.currency is not None:
+        new_curr = body.currency.upper().strip()
+        if new_curr != workspace.currency:
+            changes.append(f"currency {workspace.currency} -> {new_curr}")
+            workspace.currency = new_curr
+
+    if "default_billing_rate" in body.model_fields_set:
+        changes.append(f"default_billing_rate {workspace.default_billing_rate} -> {body.default_billing_rate}")
+        workspace.default_billing_rate = body.default_billing_rate
+
+    if body.member_rates is not None:
+        for item in body.member_rates:
+            user_id = item.user_id
+            existing = (
+                db.query(WorkspaceMemberRate)
+                .filter(WorkspaceMemberRate.workspace_id == access.workspace_id,
+                        WorkspaceMemberRate.user_id == user_id)
+                .first()
+            )
+            if item.hourly_rate is None:
+                if existing is not None:
+                    db.delete(existing)
+                    changes.append(f"cleared rate for user {user_id}")
+            else:
+                if existing is not None:
+                    existing.hourly_rate = item.hourly_rate
+                else:
+                    new_rate = WorkspaceMemberRate(
+                        workspace_id=access.workspace_id,
+                        user_id=user_id,
+                        hourly_rate=item.hourly_rate,
+                    )
+                    db.add(new_rate)
+                changes.append(f"set rate for user {user_id} to {item.hourly_rate}")
+
+    if changes:
+        _audit(db, request, access.user_id, "UPDATE", "workspace_rates", str(workspace.id),
+               f"Updated rates: {'; '.join(changes)}")
+    db.commit()
+
+    return get_rates(access, db)
 
 
 # ---- repositories -----------------------------------------------------------------------

@@ -31,8 +31,11 @@ pytestmark = pytest.mark.integration
 
 APP_BASE_URL = "https://app.example.com"
 HREF = re.compile(r'href="([^"]+)"')
+_parent_dir = Path(__file__).resolve().parents[2].parent
+SPA_APP = _parent_dir / "pmt-app" / "src" / "App.tsx"
+if not SPA_APP.exists() and (_parent_dir / "PMT-APP" / "src" / "App.tsx").exists():
+    SPA_APP = _parent_dir / "PMT-APP" / "src" / "App.tsx"
 NEW_PASSWORD = "Sup3r!Secret!Pass"
-SPA_APP = Path(__file__).resolve().parents[2].parent / "pmt-app" / "src" / "App.tsx"
 #: One admin (and one username) per `_invite` call: `seed_user` also creates a role named
 #: after the user, and role names are unique.
 _ADMINS = itertools.count()

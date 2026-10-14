@@ -34,7 +34,23 @@
 set -euo pipefail
 
 API_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_DIR="$(cd "$API_DIR/.." && pwd)/pmt-app"
+PARENT_DIR="$(cd "$API_DIR/.." && pwd)"
+
+# Detect case variations of SPA checkout (pmt-app vs PMT-APP)
+if [ -z "${APP_DIR:-}" ]; then
+    if [ -d "$PARENT_DIR/pmt-app" ]; then
+        APP_DIR="$PARENT_DIR/pmt-app"
+    elif [ -d "$PARENT_DIR/PMT-APP" ]; then
+        APP_DIR="$PARENT_DIR/PMT-APP"
+    elif [ -d "$PARENT_DIR/pmt_app" ]; then
+        APP_DIR="$PARENT_DIR/pmt_app"
+    else
+        case "$(basename "$API_DIR")" in
+            PMT-API*) APP_DIR="$PARENT_DIR/PMT-APP" ;;
+            *)        APP_DIR="$PARENT_DIR/pmt-app" ;;
+        esac
+    fi
+fi
 APP_REPO="${SETUP_APP_REPO:-https://github.com/shakthivel-rc/PMT-APP.git}"
 ENV_FILE="$API_DIR/.env"
 
@@ -219,6 +235,10 @@ if [ "$CHECK_ONLY" = "0" ]; then
     # interpolation; SUPERADMIN_PASSWORD fails quietly, by seeding nothing and leaving no way in.
     nx_env_require SECRET_KEY "$ENV_FILE"
     nx_env_require SUPERADMIN_PASSWORD "$ENV_FILE"
+    # Compute relative path from API_DIR to APP_DIR for docker compose context
+    REL_APP_DIR="$(python3 -c "import os; print(os.path.relpath('$APP_DIR', '$API_DIR'))" 2>/dev/null || echo "../$(basename "$APP_DIR")")"
+    nx_env_ensure APP_DIR "$REL_APP_DIR" "$ENV_FILE"
+    export APP_DIR="$REL_APP_DIR"
 
     chmod 600 "$ENV_FILE" 2>/dev/null || nx_warn "could not chmod .env (harmless on Windows filesystems)"
 fi

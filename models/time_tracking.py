@@ -42,6 +42,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     String,
     Text,
     text,
@@ -97,6 +98,9 @@ class TimeEntry(Base):
     # says otherwise; the server default makes every entry logged before the column existed
     # billable, which is what the time was logged for.
     billable = Column(Boolean, nullable=False, default=True, server_default=text("1"))
+    # Snapshot billing rate per hour and calculated cost amount for financial accounting
+    billing_rate = Column(Numeric(10, 2), nullable=True)
+    cost_amount = Column(Numeric(12, 2), nullable=True)
     created_at = Column(DateTime, default=_now, nullable=False)
     updated_at = Column(DateTime, default=_now, onupdate=_now, nullable=False)
     deleted = Column(Integer, nullable=False, default=0)

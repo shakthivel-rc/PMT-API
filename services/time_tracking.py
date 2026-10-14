@@ -23,7 +23,7 @@ from models.hierarchy import Space
 from models.issue import Issue
 from models.time_tracking import ActiveTimer, TimeEntry
 from models.user import User
-from models.workspace import WORKSPACE_ROLES, Workspace, WorkspaceMember
+from models.workspace import WORKSPACE_ROLES, Workspace, WorkspaceMember, WorkspaceMemberRate
 from schemas.time_tracking import TimeTrackingSettings
 from services import issue as issue_svc
 from utils import time_tracking as tt
@@ -182,6 +182,8 @@ def entry_payloads(db: Session, access: WorkspaceAccess, rows: list[TimeEntry]) 
             "note": row.note,
             "source": row.source,
             "billable": bool(row.billable),
+            "billing_rate": float(row.billing_rate) if row.billing_rate is not None else None,
+            "cost_amount": float(row.cost_amount) if row.cost_amount is not None else None,
             "created_at": row.created_at,
             "updated_at": row.updated_at,
             "can_edit": can_edit(access, row.user_id),
@@ -280,13 +282,30 @@ def issue_summary(db: Session, access: WorkspaceAccess, issue: Issue,
     }
 
 
-# ---- writes ---------------------------------------------------------------------------------
+def resolve_billing_rate(db: Session, workspace_id: str, user_id: str,
+                         explicit_rate: float | None = None) -> float | None:
+    """Resolve the effective hourly rate: explicit override, then member rate, then workspace default."""
+    if explicit_rate is not None:
+        return explicit_rate
+    member_rate = (
+        db.query(WorkspaceMemberRate.hourly_rate)
+        .filter(WorkspaceMemberRate.workspace_id == workspace_id,
+                WorkspaceMemberRate.user_id == user_id)
+        .first()
+    )
+    if member_rate and member_rate[0] is not None:
+        return float(member_rate[0])
+    ws = db.query(Workspace.default_billing_rate).filter(Workspace.id == workspace_id).first()
+    if ws and ws[0] is not None:
+        return float(ws[0])
+    return None
 
 
 def log_time(db: Session, issue: Issue, *, user_id: str, created_by: str, work_date: date,
              started_at: datetime | None, duration_seconds: int, note: str | None,
              source: str = "manual", actor_kind: str = "user",
-             billable: bool | None = None) -> TimeEntry:
+             billable: bool | None = None,
+             billing_rate: float | None = None) -> TimeEntry:
     """Create an entry and its `time_logged` event. The caller commits.
 
     `billable=None` takes the workspace's `billable_default`, so a timer and an automation
@@ -294,11 +313,16 @@ def log_time(db: Session, issue: Issue, *, user_id: str, created_by: str, work_d
     """
     if billable is None:
         billable = load_settings(db, issue.workspace_id).billable_default
+    resolved_rate = resolve_billing_rate(db, issue.workspace_id, user_id, billing_rate)
+    cost: float | None = None
+    if billable and resolved_rate is not None:
+        cost = round((duration_seconds / 3600.0) * resolved_rate, 2)
+
     entry = TimeEntry(
         workspace_id=issue.workspace_id, issue_id=issue.id, user_id=user_id,
         created_by=created_by, work_date=work_date, started_at=tt.to_naive_utc(started_at),
         duration_seconds=duration_seconds, note=clean_note(note), source=source,
-        billable=billable,
+        billable=billable, billing_rate=resolved_rate, cost_amount=cost,
     )
     db.add(entry)
     db.flush()

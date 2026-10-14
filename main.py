@@ -12,14 +12,19 @@ from core.middleware import (
 )
 from routes import (
     activity_logs,
+    ai_agents,
     auth,
     chat,
     dependencies,
+    deployments,
     health,
+    initiatives,
     integrations,
     issues,
     migrations,
     permissions,
+    poker,
+    pql,
     releases,
     reports,
     roles,
@@ -27,6 +32,7 @@ from routes import (
     sprints,
     storage,
     time_tracking,
+    timeline,
     transfer,
     user,
     workflow,
@@ -305,6 +311,20 @@ OPENAPI_TAGS: list[dict[str, str]] = [
             "and cloud providers (AWS S3, Azure Blob Storage) with MCP integration."
         ),
     },
+    {
+        "name": "Initiatives",
+        "description": (
+            "Cross-space portfolio initiatives (Epics 2.0) uniting strategic goals, "
+            "multi-space roadmaps, and progress/budget burn rollups."
+        ),
+    },
+    {
+        "name": "Deployments",
+        "description": (
+            "CI/CD deployment pipelines and environment markers across Development, "
+            "Staging, and Production environments."
+        ),
+    },
 ]
 
 # OpenAPI is served everywhere except production. The SPA and any integrator need a
@@ -408,6 +428,8 @@ app.include_router(time_tracking.router)
 app.include_router(time_tracking.timer_router)
 app.include_router(reports.router)
 app.include_router(sprints.router)
+app.include_router(poker.router)
+app.include_router(pql.router)
 # 2026-10-05, docs/design/09-restructuring.md: workflows, transfers and migrations,
 # dependencies, releases and saved board filters.
 app.include_router(workflow.router)
@@ -421,6 +443,12 @@ app.include_router(integrations.router)
 app.include_router(integrations.admin_router)
 app.include_router(chat.router)
 app.include_router(chat.user_chat_router)
+app.include_router(ai_agents.router)
+app.include_router(timeline.router)
+app.include_router(timeline.issue_router)
+app.include_router(initiatives.router)
+app.include_router(deployments.router)
+app.include_router(deployments.issue_deployments_router)
 app.include_router(health.router)
 
 

@@ -35,6 +35,8 @@ class TimeEntrySummary(BaseModel):
     note: str | None = Field(description="What was done. Plain text; render as text.")
     source: str = Field(description="manual, timer or automation.")
     billable: bool = Field(description="Whether the time is billable to a client.")
+    billing_rate: float | None = Field(default=None, description="Snapshot hourly billing rate.")
+    cost_amount: float | None = Field(default=None, description="Calculated financial cost or value.")
     created_at: datetime = Field(description="UTC.")
     updated_at: datetime = Field(description="UTC.")
     can_edit: bool = Field(description="Whether YOU may change or delete it: your own entry "
@@ -49,6 +51,8 @@ class TimeEntryPage(BaseModel):
                                                         "work date first.")
     total: int = Field(description="How many entries match across ALL pages.")
     total_seconds: int = Field(description="Their summed duration across ALL pages.")
+    total_cost_amount: float | None = Field(default=None, description="Summed cost amount across ALL pages.")
+    currency: str = Field(default="USD", description="Workspace currency.")
 
 
 class UserTime(BaseModel):
@@ -139,6 +143,7 @@ class TimeReportRow(BaseModel):
     issue: TimeIssueRef = Field(description="On what.")
     work_date: date = Field(description="Which day.")
     seconds: int = Field(description="How long, summed, in seconds.")
+    cost_amount: float | None = Field(default=None, description="Calculated financial value.")
 
 
 class TimeReport(BaseModel):
@@ -147,6 +152,8 @@ class TimeReport(BaseModel):
     date_from: date = Field(description="First day included.")
     date_to: date = Field(description="Last day included.")
     total_seconds: int = Field(description="Everything in range you can see.")
+    total_cost_amount: float | None = Field(default=None, description="Total financial value in range.")
+    currency: str = Field(default="USD", description="Workspace currency.")
     rows: list[TimeReportRow] = Field(description="Ordered by day, then issue key.")
     truncated: bool = Field(description="True when there were more rows than one answer "
                                         "carries; narrow the range or filter by person.")

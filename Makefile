@@ -2,7 +2,7 @@
 #
 # `make` on its own prints this list. The one you want on a fresh clone is `make setup`.
 
-APP_DIR := ../pmt-app
+APP_DIR ?= $(shell if [ -d ../pmt-app ]; then echo ../pmt-app; elif [ -d ../PMT-APP ]; then echo ../PMT-APP; else echo ../pmt-app; fi)
 COMPOSE := docker compose
 
 .DEFAULT_GOAL := help

@@ -182,6 +182,7 @@ def create_entry(access: WorkspaceAccess, issue_id: str, body: TimeEntryCreate, 
         db, issue, user_id=worker_id, created_by=access.user_id, work_date=body.work_date,
         started_at=body.started_at, duration_seconds=body.duration_seconds, note=body.note,
         billable=body.billable if body.billable is not None else settings.billable_default,
+        billing_rate=body.billing_rate,
     )
     if on_behalf:
         _audit(db, request, access.user_id, "CREATE", "time_entry", entry.id,
@@ -230,6 +231,16 @@ def update_entry(access: WorkspaceAccess, entry_id: str, body: TimeEntryUpdate, 
         entry.note = svc.clean_note(body.note)
     if "billable" in changed:
         entry.billable = body.billable
+    if "billing_rate" in changed:
+        entry.billing_rate = body.billing_rate
+
+    # Recalculate cost amount if any financial variable changed
+    if "duration_seconds" in changed or "billable" in changed or "billing_rate" in changed:
+        if entry.billable and entry.billing_rate is not None:
+            entry.cost_amount = round((entry.duration_seconds / 3600.0) * float(entry.billing_rate), 2)
+        else:
+            entry.cost_amount = None
+
     if changed:
         issue_svc.record_event(db, issue, "time_updated", access.user_id,
                                from_value=str(before), to_value=str(entry.duration_seconds))
@@ -310,12 +321,20 @@ def list_entries(access: WorkspaceAccess, db: Session, *, user_id: str | None,
 
     total = query.count()
     total_seconds = int(query.with_entities(func.sum(TimeEntry.duration_seconds)).scalar() or 0)
+    total_cost = query.with_entities(func.sum(TimeEntry.cost_amount)).scalar()
+    ws = db.query(Workspace.currency).filter(Workspace.id == access.workspace_id).first()
+    currency = ws[0] if ws and ws[0] else "USD"
     rows = svc.newest_first(query).offset((page - 1) * limit).limit(limit).all()
     return SuccessResponse(
         status_code=200,
         message="Time entries fetched",
-        data={"records": svc.entry_payloads(db, access, rows), "total": total,
-              "total_seconds": total_seconds},
+        data={
+            "records": svc.entry_payloads(db, access, rows),
+            "total": total,
+            "total_seconds": total_seconds,
+            "total_cost_amount": float(total_cost) if total_cost is not None else 0.0,
+            "currency": currency,
+        },
     )
 
 
@@ -337,7 +356,8 @@ def get_report(access: WorkspaceAccess, db: Session, *, date_from: date, date_to
         query = query.filter(TimeEntry.user_id == person)
     grouped = (
         query.with_entities(TimeEntry.user_id, TimeEntry.issue_id, TimeEntry.work_date,
-                            func.sum(TimeEntry.duration_seconds))
+                            func.sum(TimeEntry.duration_seconds),
+                            func.sum(TimeEntry.cost_amount))
         .group_by(TimeEntry.user_id, TimeEntry.issue_id, TimeEntry.work_date)
         .order_by(TimeEntry.work_date, TimeEntry.issue_id, TimeEntry.user_id)
         .limit(MAX_REPORT_ROWS + 1)
@@ -346,19 +366,25 @@ def get_report(access: WorkspaceAccess, db: Session, *, date_from: date, date_to
     truncated = len(grouped) > MAX_REPORT_ROWS
     grouped = grouped[:MAX_REPORT_ROWS]
     total = int(query.with_entities(func.sum(TimeEntry.duration_seconds)).scalar() or 0)
+    total_cost = query.with_entities(func.sum(TimeEntry.cost_amount)).scalar()
+    ws = db.query(Workspace.currency).filter(Workspace.id == access.workspace_id).first()
+    currency = ws[0] if ws and ws[0] else "USD"
 
     users = issue_svc.users_by_id(db, (row[0] for row in grouped))
     issues = svc.issue_refs(db, (row[1] for row in grouped))
     rows = [
         {"user": issue_svc.user_ref(users.get(uid)) or {"id": uid, "display_name": ""},
-         "issue": issues[iid], "work_date": day, "seconds": int(seconds or 0)}
-        for uid, iid, day, seconds in grouped
+         "issue": issues[iid], "work_date": day, "seconds": int(seconds or 0),
+         "cost_amount": float(cost) if cost is not None else 0.0}
+        for uid, iid, day, seconds, cost in grouped
     ]
     rows.sort(key=lambda r: (r["work_date"], r["issue"]["key"], r["user"]["display_name"]))
     return SuccessResponse(
         status_code=200,
         message="Time report fetched",
         data={"date_from": date_from, "date_to": date_to, "total_seconds": total,
+              "total_cost_amount": float(total_cost) if total_cost is not None else 0.0,
+              "currency": currency,
               "rows": rows, "truncated": truncated},
     )
 

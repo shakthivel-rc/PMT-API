@@ -253,6 +253,13 @@ class SpaceCreate(BaseModel):
         default=None, description="`scrum` (sprints toward a goal) or `kanban` (continuous "
                                   "flow).")
     charter: SpaceCharter | None = Field(default=None, description="The creation checklist.")
+    budget_amount: float | None = Field(default=None, ge=0,
+                                        description="Optional financial budget ceiling.")
+    budget_alert_threshold: int | None = Field(default=80, ge=1, le=100,
+                                               description="Budget alert percentage threshold.")
+    ai_triage_enabled: bool | None = Field(default=True, description="Enable autonomous bug triage & deduplication")
+    ai_standup_enabled: bool | None = Field(default=True, description="Enable automated async daily standups")
+    ai_retrospective_enabled: bool | None = Field(default=True, description="Enable automated sprint retrospectives")
     workflow_template: str | None = Field(
         default=None, min_length=1, max_length=MAX_TEMPLATE_REF,
         description="The workflow to start with: `default`, `delivery` or `support` (also "
@@ -308,6 +315,13 @@ class SpaceUpdate(BaseModel):
     charter: SpaceCharter | None = Field(
         default=None, description="The whole checklist, replacing the stored one; null "
                                   "clears it.")
+    budget_amount: float | None = Field(default=None, ge=0,
+                                        description="Optional financial budget ceiling; null clears.")
+    budget_alert_threshold: int | None = Field(default=None, ge=1, le=100,
+                                               description="Budget alert percentage threshold; null clears.")
+    ai_triage_enabled: bool | None = Field(default=None, description="Enable autonomous bug triage & deduplication; null clears.")
+    ai_standup_enabled: bool | None = Field(default=None, description="Enable automated async daily standups; null clears.")
+    ai_retrospective_enabled: bool | None = Field(default=None, description="Enable automated sprint retrospectives; null clears.")
 
 
 class SpaceFreeze(BaseModel):

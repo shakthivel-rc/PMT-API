@@ -61,11 +61,19 @@ only by the AI worker (`ai/client.py`); the API process never imports it
 
 ## Quick start
 
-**One command, from a clean machine with Docker:**
+**One command, from a clean machine (Linux, macOS, or Windows):**
 
 ```bash
-git clone https://github.com/shakthivel-rc/PMT-API.git && cd pmt-api && make setup
+git clone https://github.com/shakthivel-rc/PMT-API.git pmt-api && cd pmt-api && make setup
 ```
+
+*(Note: If you ran `git clone` without specifying `pmt-api`, Git clones to `PMT-API` by default on case-sensitive filesystems; simply run `cd PMT-API && make setup` — both directory casings are fully supported).*
+
+On **Windows**, run:
+```cmd
+setup.cmd
+```
+*(or in PowerShell: `powershell -ExecutionPolicy Bypass -File scripts\bootstrap.ps1`)*
 
 That clones the SPA beside this repo, writes a `.env` with freshly generated secrets, brings
 up MySQL, runs the migrations, seeds the default accounts, and starts everything. When it
@@ -77,9 +85,7 @@ The seeded accounts are `superadmin@base-project.local` (role `Admin`) and
 `SUPERADMIN_PASSWORD` value setup wrote to `.env`; `SUPERADMIN_EMAIL` and `SEED_MEMBER_EMAIL`
 override the addresses.
 
-Docker is the only prerequisite. It is used because this half of the project needs a MySQL
-server, a schema, a seeded account and secret keys before it will start at all, and installing
-MySQL is the single largest obstacle between a clone and a running app.
+Docker is the recommended prerequisite. If Docker is not yet installed on your system, `make setup` will detect this and offer to install Docker and Docker Compose automatically across Linux (`apt`, `dnf`, `pacman`, `apk`, `zypper`), macOS (`brew`), and Windows (`winget`), or cleanly fall back to native installation.
 
 Re-running `make setup` is safe: it fills in only what is missing and never overwrites a value
 you already have in `.env`.

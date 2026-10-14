@@ -9,7 +9,14 @@
 set -euo pipefail
 
 API_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_DIR="$(cd "$API_DIR/.." && pwd)/pmt-app"
+PARENT_DIR="$(cd "$API_DIR/.." && pwd)"
+if [ -d "$PARENT_DIR/pmt-app" ]; then
+    APP_DIR="$PARENT_DIR/pmt-app"
+elif [ -d "$PARENT_DIR/PMT-APP" ]; then
+    APP_DIR="$PARENT_DIR/PMT-APP"
+else
+    APP_DIR="$PARENT_DIR/pmt-app"
+fi
 
 # shellcheck source=lib/common.sh
 . "$API_DIR/scripts/lib/common.sh"

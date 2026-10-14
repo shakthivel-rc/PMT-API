@@ -43,7 +43,7 @@ from models.issue import Issue
 from models.migration import MigrationPlan
 from models.reporting import ReportSchedule, SavedReport
 from models.sprint import Sprint
-from models.time_tracking import ActiveTimer
+from models.time_tracking import ActiveTimer, TimeEntry
 from models.user import User
 from models.vcs import VcsRepository
 from models.workspace import Workspace, WorkspaceMember
@@ -350,6 +350,23 @@ def space_nodes(db: Session, workspace_id: str, *, access: WorkspaceAccess | Non
         else:
             lists_by_folder.setdefault(str(item.folder_id), []).append(item)
 
+    spent_by_space: dict[str, float] = {}
+    if spaces:
+        space_ids = [s.id for s in spaces]
+        spent_rows = (
+            db.query(Issue.space_id, func.sum(TimeEntry.cost_amount))
+            .join(TimeEntry, TimeEntry.issue_id == Issue.id)
+            .filter(
+                TimeEntry.workspace_id == workspace_id,
+                TimeEntry.deleted == 0,
+                Issue.deleted == 0,
+                Issue.space_id.in_(space_ids),
+            )
+            .group_by(Issue.space_id)
+            .all()
+        )
+        spent_by_space = {str(sid): float(spent) for sid, spent in spent_rows if spent is not None}
+
     nodes = []
     for space in spaces:
         space_id = str(space.id)
@@ -365,6 +382,12 @@ def space_nodes(db: Session, workspace_id: str, *, access: WorkspaceAccess | Non
                       if space.owner_id else None),
             "delivery_method": space.delivery_method,
             "has_charter": charter is not None,
+            "budget_amount": float(space.budget_amount) if space.budget_amount is not None else None,
+            "budget_alert_threshold": space.budget_alert_threshold if space.budget_alert_threshold is not None else 80,
+            "budget_spent": spent_by_space.get(space_id, 0.0),
+            "ai_triage_enabled": space.ai_triage_enabled if space.ai_triage_enabled is not None else True,
+            "ai_standup_enabled": space.ai_standup_enabled if space.ai_standup_enabled is not None else True,
+            "ai_retrospective_enabled": space.ai_retrospective_enabled if space.ai_retrospective_enabled is not None else True,
             "archived": space.archived_at is not None,
             "archived_at": space.archived_at,
             "frozen": frozen,
@@ -454,13 +477,23 @@ def space_key_taken(db: Session, workspace_id: str, key: str) -> bool:
 def create_space(db: Session, workspace_id: str, name: str, key: str,
                  definition: dict | None = None, *, description: str | None = None,
                  owner_id: str | None = None, delivery_method: str | None = None,
-                 charter: dict | None = None) -> Space:
+                 charter: dict | None = None,
+                 budget_amount: float | None = None,
+                 budget_alert_threshold: int | None = 80,
+                 ai_triage_enabled: bool = True,
+                 ai_standup_enabled: bool = True,
+                 ai_retrospective_enabled: bool = True) -> Space:
     """A space and its workflow, from a template definition (services/workflow_templates.py;
     the four-stage `default` when none is given). The definition should have been through
     `prepare_definition`; `materialize` raises ValueError for one that is out of bounds."""
     space = Space(workspace_id=workspace_id, name=name, key=key, issue_counter=0,
                   description=description, owner_id=owner_id,
-                  delivery_method=delivery_method, charter=charter)
+                  delivery_method=delivery_method, charter=charter,
+                  budget_amount=budget_amount,
+                  budget_alert_threshold=budget_alert_threshold if budget_alert_threshold is not None else 80,
+                  ai_triage_enabled=ai_triage_enabled,
+                  ai_standup_enabled=ai_standup_enabled,
+                  ai_retrospective_enabled=ai_retrospective_enabled)
     db.add(space)
     db.flush()
     workflow_templates.materialize(

@@ -54,6 +54,10 @@ class TimeEntryCreate(BaseModel):
         description="Whether the time is billable to a client. Omit for the workspace's "
                     "`billable_default`.",
     )
+    billing_rate: float | None = Field(
+        default=None, ge=0,
+        description="Snapshot hourly rate. Omit to take the member or workspace default rate.",
+    )
 
 
 class TimeEntryUpdate(BaseModel):
@@ -75,6 +79,7 @@ class TimeEntryUpdate(BaseModel):
     note: str | None = Field(default=None, max_length=NOTE_MAX_LENGTH,
                              description="What was done, or null to clear.")
     billable: bool | None = Field(default=None, description="Billable to a client or not.")
+    billing_rate: float | None = Field(default=None, ge=0, description="Snapshot hourly rate.")
 
 
 class TimerStart(BaseModel):
