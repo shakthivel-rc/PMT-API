@@ -36,6 +36,15 @@ Pairs with the React SPA in the [`pmt-app`](https://github.com/your-org/pmt-app)
 | **Identity** | Login by email *or* username, per-account lockout, revocable server-side sessions, rotating refresh tokens, OTP email verification, invite and password-reset links |
 | **Authorization** | Role-based. Permissions attach to roles, resolved through a three-branch check that also honours coarse permission implications |
 | **Auditing** | Activity log of user and admin actions |
+| **Workspaces & Hierarchy** | 4-tier organization: `Workspace > Space > Folder > List`. Tenant isolation with zero-disclosure (404), governance, container archiving and freezing |
+| **Issues & Boards** | Central work items (Epic › Story / Task / Bug › Subtask), Kanban/List boards, Lexorank re-positioning, issue dependencies (`blocks`, `relates`, `duplicates`, `clones`) |
+| **Workflows** | Per-space customizable stages, categories (`todo`, `in_progress`, `done`, `canceled`), transition rules (`any` vs `restricted`), WIP policies (`warn` vs `block`), and GitHub PR merge hooks |
+| **Sprints** | Iteration planning, commitment point baseline freezing at start, real-time KPI progress tracking, closing with carry-over to backlog or future sprint |
+| **Time Tracking** | Whole-second precision, active stopwatch timer per user, daily/weekly logs, timesheets, lock periods, and workspace visibility settings |
+| **Reports** | 15 analytical report types across Time, Sprint, Project, and Flow categories; background CSV/XLSX/PDF generation; saved reports and scheduled email digests |
+| **Storage & Files** | Local and cloud storage adapters (AWS S3, Azure Blob Storage) with MCP integration for issue attachments |
+| **Integrations** | Inbound GitHub webhooks with HMAC-SHA256 signature verification, automated stage moves on PR merge, deferred delivery queuing for frozen spaces |
+| **AI Assistant & Chat** | Conversational agent API, persistent multi-turn conversations, LLM thread summarization, model credentials management, and tools execution |
 | **Health** | `/api/v1/health/live`, `/ready`, `/dependencies` (database) |
 | **Email** | OTP, invitation and reset mail over SMTP (AWS SES); logged instead of sent when `SMTP_HOST` is unset |
 | **Hardening** | Rate limiting, security headers, body-size limit, request ids, JSON logs with secret redaction |
@@ -146,20 +155,25 @@ vulnerability, and what this service is trusted with, is [`SECURITY.md`](SECURIT
 main.py             app assembly and middleware order
 core/               settings, JSON logging + secret redaction, middleware, error handlers,
                     permission catalogue, rate limiting
-routes/             APIRouters: auth, user, roles, permissions, activity_logs, health
-dependencies/       check_permissions — the RBAC dependency routes declare
+routes/             APIRouters: auth, user, roles, permissions, activity_logs, workspaces,
+                    issues, time_tracking, reports, sprints, workflow, transfer, migrations,
+                    dependencies, releases, saved_views, storage, integrations, chat, health
+dependencies/       check_permissions (RBAC), workspace_access tenancy gates
 controllers/        business logic; owns the transaction boundary
-services/           query helpers, the activity log
+services/           domain operations (issues, sprints, reports, workflows, workspace, etc.)
 schemas/            Pydantic request bodies + the response envelope
 models/             SQLAlchemy declarative models
 db/                 engine, session factory, get_db
-integrations/       the SMTP (AWS SES) transport
+integrations/       SMTP (AWS SES) transport, GitHub webhook parsing & verification
+ai/                 prompts (versioned), model client, thread context reader
+workers/            background processors: ai_worker, report_worker
+mcp/                Model Context Protocol servers (e.g. cloud_storage)
 seeders/            first-boot data: the superadmin, the member account, the default roles
 utils/              password hashing and policy, Fernet link tokens, small leaf helpers
 alembic/            migrations
 scripts/            setup, dev servers, and the gates that are not tests
 docs/               API documentation standard, OpenAPI digest, token-storage decision,
-                    security exceptions, hardening audit, readiness plan
+                    security exceptions, hardening audit, readiness plan, guides, runbooks
 tests/              pytest suite: unit / integration / live
 ```
 

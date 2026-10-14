@@ -51,13 +51,15 @@ schemas/       pydantic request/response models.
 models/        SQLAlchemy tables.
 core/          config, logging + secret redaction, middleware, error handlers,
                permission catalogue, rate limiting.
-dependencies/  FastAPI dependencies — check_permissions (RBAC).
+dependencies/  FastAPI dependencies — check_permissions (RBAC) and workspace_access (tenancy).
 db/            engine, session factory, `get_db`.
 integrations/  transports — SMTP email (aws_ses.py); GitHub webhook verification and
                parsing (github.py), pure functions.
 ai/            prompts (versioned), the model client, and reading a thread's context.
                Only the worker imports ai/client.py; the API process never calls a model.
-workers/       long-running processes beside the API — the AI worker.
+workers/       long-running processes beside the API — the AI worker (ai_worker) and
+               the report & export worker (report_worker).
+mcp/           Model Context Protocol servers (e.g. cloud_storage).
 utils/         small leaf helpers with no project imports.
 alembic/       migrations. One revision per schema change.
 seeders/       first-boot data (superadmin, member, default roles).
