@@ -320,8 +320,8 @@ app = FastAPI(
     # Points at the repository README tells a reader to clone. There is no support mailbox
     # to publish, and inventing one would be worse than omitting it.
     contact={
-        "name": "Base Project",
-        "url": "https://github.com/your-org/pmt-api",
+        "name": "PMT Project",
+        "url": "https://github.com/shakthivel-rc/PMT-API",
     },
     # `identifier` rather than `url`: the SPDX id is what a licence scanner reads, and
     # OpenAPI 3.1 — which FastAPI emits — allows exactly one of the two.

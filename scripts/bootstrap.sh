@@ -35,7 +35,7 @@ set -euo pipefail
 
 API_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_DIR="$(cd "$API_DIR/.." && pwd)/pmt-app"
-APP_REPO="${SETUP_APP_REPO:-https://github.com/your-org/pmt-app.git}"
+APP_REPO="${SETUP_APP_REPO:-https://github.com/shakthivel-rc/PMT-APP.git}"
 ENV_FILE="$API_DIR/.env"
 
 # shellcheck source=lib/common.sh

@@ -5,7 +5,7 @@ roles and permissions, an activity log and health probes, with the security, con
 tooling gates already wired. Start a product from it by adding route → controller → service
 → model modules.
 
-Pairs with the React SPA in the [`pmt-app`](https://github.com/your-org/pmt-app) repository.
+Pairs with the React SPA in the [`pmt-app`](https://github.com/shakthivel-rc/PMT-APP) repository.
 
 > **PMT — the project-management product built on this base.** This copy adds workspaces,
 > the Space › Folder › List hierarchy, issues (Epic › Story / Task / Bug › Subtask — the
@@ -64,7 +64,7 @@ only by the AI worker (`ai/client.py`); the API process never imports it
 **One command, from a clean machine with Docker:**
 
 ```bash
-git clone https://github.com/your-org/pmt-api.git && cd pmt-api && make setup
+git clone https://github.com/shakthivel-rc/PMT-API.git && cd pmt-api && make setup
 ```
 
 That clones the SPA beside this repo, writes a `.env` with freshly generated secrets, brings
