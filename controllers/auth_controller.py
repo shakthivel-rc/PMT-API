@@ -14,12 +14,12 @@ import uuid
 from dotenv import load_dotenv
 from core.config import get_settings
 from utils.token import decode_base64, decrypt_string, generate_random_code, encode_to_base64, encrypt_string
-from utils.token import RESET_LINK_PATH, app_link
+from utils.token import RESET_LINK_PATH, INVITE_LINK_PATH, app_link
 from utils.password import hash_password, validate_password_policy, verify_password
 from models.user import User
 from integrations.aws_ses import send_email
 from models.user_session import UserSession, hash_session_token
-from utils.constants import reset_password_email_template, otp_email_template
+from utils.constants import reset_password_email_template, otp_email_template, login_email_template
 from services.activity_log import log_activity
 
 load_dotenv()
@@ -376,8 +376,29 @@ def handle_forgot_password(response: Response, schema: ForgotPasswordSchema, db:
         return ErrorResponse(status="error", status_code=response.status_code, message="No user found with this email")
     
     if not user.status:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return ErrorResponse(status="error", status_code=response.status_code, message="Unverified users cannot reset their password")
+        # User is unverified (e.g. invited or registered but never activated/set password).
+        # Resend the activation/welcome email with the invite link so they can complete activation.
+        token = generate_random_code(16)
+        user.verify_token = token
+        encoded_token = encode_to_base64(encrypt_string(token))
+        verify_url = app_link(INVITE_LINK_PATH, encoded_token)
+        email_template = EmailTemplate(
+            subject="Activate Your PMT Account",
+            body=login_email_template(user.first_name, verify_url)
+        )
+        email_response = send_email(recipient_email=user.email, email_template=email_template)
+        if not email_response["status"]:
+            response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+            return ErrorResponse(status="error", status_code=500, message="Error occurred sending the email. Make sure your email configuration is correct.")
+
+        db.commit()
+        response.status_code = status.HTTP_200_OK
+        return SuccessResponse(
+            status="success",
+            status_code=response.status_code,
+            message="Your account is pending activation. We have sent an activation link to your email to set your password.",
+            data={}
+        )
     
     # setting up the email
     token = generate_random_code(16)
@@ -694,7 +715,10 @@ def set_password_after_registration_controller(response: Response, data: SetPass
         user_role = UserRole(user_id=user.id, role_id=default_role.id)
         db.add(user_role)
 
-    log_activity(db, user.id, f"{user.first_name} {user.last_name}", "CREATE", entity_type="user", entity_id=user.id, details="Self-registration completed")
+    log_activity(
+        db, user.id, f"{user.first_name} {user.last_name}", "CREATE",
+        entity_type="user", entity_id=user.id, details="Self-registration completed"
+    )
 
     db.commit()
 

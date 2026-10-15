@@ -64,16 +64,43 @@ nx_sudo_prefix() {
     return 1
 }
 
+# Background process keeping sudo credentials alive during long installations
+NX_SUDO_PID=""
+
+nx_start_sudo_keepalive() {
+    [ "$(id -u 2>/dev/null || echo 1000)" = "0" ] && return 0
+    nx_have sudo || return 0
+    [ -n "$NX_SUDO_PID" ] && return 0
+    (
+        while kill -0 "$$" 2>/dev/null; do
+            sudo -n true 2>/dev/null || true
+            sleep 45
+        done
+    ) >/dev/null 2>&1 &
+    NX_SUDO_PID=$!
+}
+
+nx_stop_sudo_keepalive() {
+    if [ -n "${NX_SUDO_PID:-}" ]; then
+        kill "$NX_SUDO_PID" 2>/dev/null || true
+        wait "$NX_SUDO_PID" 2>/dev/null || true
+        NX_SUDO_PID=""
+    fi
+}
+
 # Ensure sudo credentials are authenticated with an interactive prompt before
 # background/redirected commands run, preventing silent hangs.
 nx_ensure_sudo() {
     [ "$(id -u 2>/dev/null || echo 1000)" = "0" ] && return 0
     nx_have sudo || return 1
     if sudo -n true 2>/dev/null; then
+        nx_start_sudo_keepalive
         return 0
     fi
     nx_info "Administrator (sudo) privileges required. Please authenticate if prompted:"
     sudo -v || return 1
+    nx_start_sudo_keepalive
+    return 0
 }
 
 # --- installing -------------------------------------------------------------------------
@@ -188,7 +215,7 @@ nx_install() {
     fi
 
     case "$manager" in
-        apt)    command_line="${prefix} apt-get install -y --no-install-recommends${names}" ;;
+        apt)    command_line="DEBIAN_FRONTEND=noninteractive ${prefix} apt-get install -y --no-install-recommends${names}" ;;
         dnf)    command_line="${prefix} dnf install -y${names}" ;;
         yum)    command_line="${prefix} yum install -y${names}" ;;
         pacman) command_line="${prefix} pacman -S --noconfirm --needed${names}" ;;
@@ -206,7 +233,7 @@ nx_install() {
     if [ "$manager" = "apt" ] && [ "$NX_APT_UPDATED" = "0" ]; then
         NX_APT_UPDATED=1
         # shellcheck disable=SC2086
-        $prefix apt-get update >/dev/null 2>&1 || nx_warn "apt-get update failed; trying the install anyway"
+        DEBIAN_FRONTEND=noninteractive $prefix apt-get update >/dev/null 2>&1 || nx_warn "apt-get update failed; trying the install anyway"
     fi
 
     # shellcheck disable=SC2086
@@ -386,10 +413,10 @@ nx_install_docker() {
             nx_ensure_sudo || return 1
             prefix="$(nx_sudo_prefix)"
             # shellcheck disable=SC2086
-            $prefix apt-get update >/dev/null 2>&1 || true
+            DEBIAN_FRONTEND=noninteractive $prefix apt-get update >/dev/null 2>&1 || true
             # shellcheck disable=SC2086
-            $prefix apt-get install -y --no-install-recommends docker.io docker-compose-plugin >/dev/null 2>&1 \
-                || $prefix apt-get install -y --no-install-recommends docker.io docker-compose >/dev/null 2>&1 \
+            DEBIAN_FRONTEND=noninteractive $prefix apt-get install -y --no-install-recommends docker.io docker-compose-plugin >/dev/null 2>&1 \
+                || DEBIAN_FRONTEND=noninteractive $prefix apt-get install -y --no-install-recommends docker.io docker-compose >/dev/null 2>&1 \
                 || return 1
         else
             return 1
@@ -545,3 +572,182 @@ nx_compose_ready() {
     fi
     return 1
 }
+
+# --- pre-flight plan & upfront permission gathering -------------------------------------
+#
+# Inspect all prerequisites, toolchains and system permissions before step 1 so all
+# confirmations, decisions and administrator permissions are gathered once upfront,
+# allowing the rest of setup to run completely unattended.
+nx_preflight_plan() {
+    local missing_logical=""
+    local missing_concrete=""
+    local need_sudo=0
+    local manager=""
+    local need_docker_start=0
+    local need_docker_group=0
+    local need_mysql_create=0
+
+    # If diagnosis only or auto-install disabled, skip upfront interactive prompting
+    if [ "${CHECK_ONLY:-0}" = "1" ] || [ "${SETUP_AUTO_INSTALL:-1}" = "0" ]; then
+        return 0
+    fi
+
+    manager="$(nx_pkg_manager)"
+
+    # 1. Check Git: needed to fetch the SPA if missing
+    if [ ! -f "$APP_DIR/package.json" ]; then
+        if ! nx_have git; then
+            missing_logical="${missing_logical} git"
+        fi
+    fi
+
+    # 2. Check Toolchain (Docker vs Native)
+    if [ "$MODE" = "docker" ] || [ "$MODE" = "auto" ]; then
+        if ! nx_have docker; then
+            if [ "$MODE" = "docker" ]; then
+                missing_logical="${missing_logical} docker compose-plugin"
+            elif [ "$manager" != "brew" ] && [ "$(id -u 2>/dev/null || echo 1000)" != "0" ] && ! nx_have sudo; then
+                nx_warn "Docker is not installed and administrator (sudo) privileges are not available to install it."
+                nx_fix "falling back to a native install (Python venv + npm)"
+                MODE="native"
+            else
+                # Auto mode: ask upfront about installing Docker or falling back to native
+                if [ "${SETUP_ASSUME_YES:-0}" = "1" ] || [ ! -t 0 ]; then
+                    missing_logical="${missing_logical} docker compose-plugin"
+                else
+                    nx_warn "Docker is not installed on this machine."
+                    if nx_confirm "Would you like setup to install Docker and Docker Compose? (n = fall back to native Python+Node+MySQL)"; then
+                        missing_logical="${missing_logical} docker compose-plugin"
+                    else
+                        nx_fix "falling back to native install (Python venv + npm + MySQL)"
+                        MODE="native"
+                    fi
+                fi
+            fi
+        else
+            # Docker CLI is present. Check if daemon is responsive
+            if docker info >/dev/null 2>&1; then
+                : # Docker daemon is running and accessible
+            else
+                local probe=""
+                probe="$(docker info 2>&1 || true)"
+                case "$probe" in
+                    *"permission denied"*|*"Got permission denied"*|*"connect: permission denied"*)
+                        if [ "$(id -u 2>/dev/null || echo 1000)" != "0" ]; then
+                            need_docker_group=1
+                            need_sudo=1
+                        fi
+                        ;;
+                    *)
+                        need_docker_start=1
+                        if [ "$(nx_os)" = "linux" ]; then
+                            need_sudo=1
+                        fi
+                        ;;
+                esac
+            fi
+
+            # Check Compose availability
+            if ! docker compose version >/dev/null 2>&1 && ! nx_have docker-compose; then
+                missing_logical="${missing_logical} compose-plugin"
+            fi
+        fi
+    fi
+
+    # 3. Check Native dependencies if MODE is native (requested or fell back)
+    if [ "$MODE" = "native" ]; then
+        # Check Python
+        local py_cand=""
+        if ! py_cand="$(nx_find_python "${PYTHON_MINIMUM:-3.12}" 2>/dev/null || true)"; then
+            missing_logical="${missing_logical} python python-venv"
+        else
+            if ! "$py_cand" -c 'import venv, ensurepip' >/dev/null 2>&1; then
+                missing_logical="${missing_logical} python-venv"
+            fi
+        fi
+
+        # Check Node
+        if ! nx_find_node "${NODE_MINIMUM:-24}" >/dev/null 2>&1; then
+            missing_logical="${missing_logical} node"
+        fi
+
+        # Check Database
+        # Only needed if Docker is not active to run the DB container
+        if ! docker info >/dev/null 2>&1; then
+            if ! nx_have mysqld && ! nx_have mysql; then
+                missing_logical="${missing_logical} mysql-server"
+            else
+                need_mysql_create=1
+            fi
+        fi
+    fi
+
+    # 4. Resolve package names and check if sudo is needed for installation
+    local item="" concrete=""
+    for item in $missing_logical; do
+        concrete="$(nx_package_name "$item" "$manager")"
+        if [ -n "$concrete" ]; then
+            case " $missing_concrete " in
+                *" $concrete "*) ;;
+                *) missing_concrete="${missing_concrete} ${concrete}" ;;
+            esac
+            if [ "$manager" != "brew" ] && [ "$(id -u 2>/dev/null || echo 1000)" != "0" ]; then
+                need_sudo=1
+            fi
+        fi
+    done
+
+    # Trim leading space
+    missing_concrete="${missing_concrete# }"
+
+    # If nothing missing and no elevated actions required, proceed seamlessly
+    if [ -z "$missing_concrete" ] && [ "$need_sudo" -eq 0 ] && [ "$need_docker_start" -eq 0 ] && [ "$need_mysql_create" -eq 0 ]; then
+        return 0
+    fi
+
+    # 5. Display unified pre-flight summary
+    nx_step "Pre-flight verification & permissions"
+    if [ -n "$missing_concrete" ]; then
+        nx_info "Prerequisites to install: ${missing_concrete} (via ${manager})"
+    fi
+    if [ "$need_docker_start" -eq 1 ]; then
+        nx_info "System action: start Docker service"
+    fi
+    if [ "$need_docker_group" -eq 1 ]; then
+        nx_info "System action: configure Docker socket permissions for user"
+    fi
+    if [ "$need_mysql_create" -eq 1 ]; then
+        nx_info "System action: configure database on local MySQL server"
+    fi
+    if [ "$need_sudo" -eq 1 ]; then
+        nx_info "Permissions required: Administrator (sudo) access"
+    fi
+
+    # 6. Request upfront confirmation
+    if [ "${SETUP_ASSUME_YES:-0}" != "1" ] && [ -t 0 ]; then
+        if ! nx_confirm "Proceed with all installations and setup?"; then
+            nx_die "Setup aborted by user."
+        fi
+        # Once confirmed upfront, assume yes for all subsequent commands in this run
+        SETUP_ASSUME_YES=1
+        export SETUP_ASSUME_YES
+    fi
+
+    # 7. Authenticate sudo upfront and start background keep-alive
+    if [ "$need_sudo" -eq 1 ]; then
+        if ! nx_ensure_sudo; then
+            if [ "$MODE" = "docker" ]; then
+                nx_die "Docker was requested with --docker, but administrator (sudo) privileges could not be authenticated.
+       Please have an administrator install Docker, or use native mode:
+       make setup-native"
+            else
+                nx_warn "Administrator (sudo) privileges could not be authenticated. Cannot install system packages."
+                nx_fix "falling back to a native install (Python venv + npm)"
+                MODE="native"
+                return 0
+            fi
+        fi
+        nx_ok "Administrator privileges authenticated"
+    fi
+}
+

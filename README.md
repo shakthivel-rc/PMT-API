@@ -38,6 +38,7 @@ Pairs with the React SPA in the [`pmt-app`](https://github.com/shakthivel-rc/PMT
 | **Auditing** | Activity log of user and admin actions |
 | **Workspaces & Hierarchy** | 4-tier organization: `Workspace > Space > Folder > List`. Tenant isolation with zero-disclosure (404), governance, container archiving and freezing |
 | **Issues & Boards** | Central work items (Epic › Story / Task / Bug › Subtask), Kanban/List boards, Lexorank re-positioning, issue dependencies (`blocks`, `relates`, `duplicates`, `clones`) |
+| **Notifications & Inbox** | In-app user notifications for issue assignments and status updates, unread badge counter, individual/bulk read markers |
 | **Workflows** | Per-space customizable stages, categories (`todo`, `in_progress`, `done`, `canceled`), transition rules (`any` vs `restricted`), WIP policies (`warn` vs `block`), and GitHub PR merge hooks |
 | **Sprints** | Iteration planning, commitment point baseline freezing at start, real-time KPI progress tracking, closing with carry-over to backlog or future sprint |
 | **Time Tracking** | Whole-second precision, active stopwatch timer per user, daily/weekly logs, timesheets, lock periods, and workspace visibility settings |
@@ -64,10 +65,11 @@ only by the AI worker (`ai/client.py`); the API process never imports it
 **One command, from a clean machine (Linux, macOS, or Windows):**
 
 ```bash
-git clone https://github.com/shakthivel-rc/PMT-API.git pmt-api && cd pmt-api && make setup
+git clone https://github.com/shakthivel-rc/PMT-API.git pmt-api && cd pmt-api && ./setup.sh
 ```
+*(or `make setup` if you have `make` installed).*
 
-*(Note: If you ran `git clone` without specifying `pmt-api`, Git clones to `PMT-API` by default on case-sensitive filesystems; simply run `cd PMT-API && make setup` — both directory casings are fully supported).*
+*(Note: If you ran `git clone` without specifying `pmt-api`, Git clones to `PMT-API` by default on case-sensitive filesystems; simply run `cd PMT-API && ./setup.sh` — both directory casings are fully supported).*
 
 On **Windows**, run:
 ```cmd
@@ -75,26 +77,27 @@ setup.cmd
 ```
 *(or in PowerShell: `powershell -ExecutionPolicy Bypass -File scripts\bootstrap.ps1`)*
 
-That clones the SPA beside this repo, writes a `.env` with freshly generated secrets, brings
-up MySQL, runs the migrations, seeds the default accounts, and starts everything. When it
-finishes it prints the URLs — the app on <http://localhost:8080>, the API on
-<http://localhost:8000>.
+That clones the SPA beside this repo, writes a `.env` with freshly generated secrets, settles free ports, brings
+up the database, runs the migrations, seeds the default superadmin, and starts everything. When it
+finishes, it prints the URLs and credentials directly in your terminal:
+- **Application:** <http://localhost:8080>
+- **API Health:** <http://localhost:8000/api/v1/health/ready>
+- **Superadmin:** `superadmin@base-project.local` (password printed at the end of setup).
 
-The seeded accounts are `superadmin@base-project.local` (role `Admin`) and
-`member@base-project.local` (role `Member`, which holds no permission). Both sign in with the
-`SUPERADMIN_PASSWORD` value setup wrote to `.env`; `SUPERADMIN_EMAIL` and `SEED_MEMBER_EMAIL`
-override the addresses.
+### Dynamic Auto-Detection & Zero-Friction Fallback
 
-Docker is the recommended prerequisite. If Docker is not yet installed on your system, `make setup` will detect this and offer to install Docker and Docker Compose automatically across Linux (`apt`, `dnf`, `pacman`, `apk`, `zypper`), macOS (`brew`), and Windows (`winget`), or cleanly fall back to native installation.
+The installer dynamically detects your system's capabilities:
+1. **Containerized (Docker, recommended):** Uses Docker and Docker Compose if present.
+2. **Missing Docker with Permissions:** Offers to install Docker automatically across Linux (`apt`, `dnf`, `pacman`, `apk`, `zypper`), macOS (`brew`), and Windows (`winget`).
+3. **No Docker / No Root Privileges:** Automatically falls back to **Native Mode** (`Python venv + npm`), which runs 100% in user space without requiring root or sudo. If no MySQL server is running, setup dynamically configures an instant embedded SQLite database (`base_project.db`) so the application is immediately usable without any external dependencies.
 
-Re-running `make setup` is safe: it fills in only what is missing and never overwrites a value
-you already have in `.env`.
+Re-running `./setup.sh` is safe: it fills in only what is missing and never overwrites a value you already have in `.env`.
 
-### Without Docker
+### Direct Native Mode (Without Docker)
 
 ```bash
-make setup-native     # venv + pip + npm + migrations + seed, against your own MySQL
-make dev              # both dev servers with hot reload
+./setup.sh --native   # or make setup-native
+make dev              # starts both backend and frontend dev servers with hot reload
 ```
 
 Native mode needs Python 3.12, Node, and a MySQL server you point `DATABASE_URL` at. The
@@ -162,13 +165,13 @@ main.py             app assembly and middleware order
 core/               settings, JSON logging + secret redaction, middleware, error handlers,
                     permission catalogue, rate limiting
 routes/             APIRouters: auth, user, roles, permissions, activity_logs, workspaces,
-                    issues, time_tracking, reports, sprints, workflow, transfer, migrations,
+                    issues, notifications, time_tracking, reports, sprints, workflow, transfer, migrations,
                     dependencies, releases, saved_views, storage, integrations, chat, health
 dependencies/       check_permissions (RBAC), workspace_access tenancy gates
-controllers/        business logic; owns the transaction boundary
-services/           domain operations (issues, sprints, reports, workflows, workspace, etc.)
+controllers/        business logic; owns the transaction boundary (including notification_controller)
+services/           domain operations (issues, notifications, sprints, reports, workflows, workspace, etc.)
 schemas/            Pydantic request bodies + the response envelope
-models/             SQLAlchemy declarative models
+models/             SQLAlchemy declarative models (User, Issue, Notification, Workspace, etc.)
 db/                 engine, session factory, get_db
 integrations/       SMTP (AWS SES) transport, GitHub webhook parsing & verification
 ai/                 prompts (versioned), model client, thread context reader

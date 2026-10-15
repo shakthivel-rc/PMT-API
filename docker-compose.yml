@@ -54,6 +54,8 @@ services:
     build:
       context: .
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       db:
         condition: service_healthy
@@ -198,6 +200,8 @@ services:
     build:
       context: .
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # After the API is healthy — its entrypoint applies the migrations; this one skips it.
     depends_on:
       api:

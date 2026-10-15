@@ -63,6 +63,7 @@ def _load_metadata():
         "models.ai_agents",
         "models.initiative",
         "models.deployment",
+        "models.notification",
     ):
         importlib.import_module(module)
     return db_session.Base.metadata

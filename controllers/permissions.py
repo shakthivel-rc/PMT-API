@@ -18,9 +18,14 @@ def add_permission(permission: PermissionCreate, db: Session, request=None):
             return JSONResponse(status_code=409, content=error_response.model_dump())
             
         # Create a new permission
+        machine_name = (
+            permission.machine_name.strip()
+            if permission.machine_name and permission.machine_name.strip()
+            else to_snake_case(permission.permission_name)
+        )
         new_permission = Permission(
-            name = permission.permission_name,
-            machine_name = to_snake_case(permission.permission_name), 
+            name=permission.permission_name,
+            machine_name=machine_name,
         )
         db.add(new_permission)
 

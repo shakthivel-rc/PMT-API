@@ -22,6 +22,7 @@ from routes import (
     integrations,
     issues,
     migrations,
+    notifications,
     permissions,
     poker,
     pql,
@@ -449,6 +450,7 @@ app.include_router(timeline.issue_router)
 app.include_router(initiatives.router)
 app.include_router(deployments.router)
 app.include_router(deployments.issue_deployments_router)
+app.include_router(notifications.router)
 app.include_router(health.router)
 
 

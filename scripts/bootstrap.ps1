@@ -144,6 +144,23 @@ $apiDir = Split-Path -Parent $PSScriptRoot
 Write-Host "Base Project setup (Windows)" -ForegroundColor White
 Write-Info "PowerShell $($PSVersionTable.PSVersion) on $([Environment]::OSVersion.VersionString)"
 
+# Pre-flight checks: batch all missing tool installs upfront
+$missingTools = @()
+if (-not (Test-Command 'git')) {
+    $missingTools += "Git for Windows"
+}
+if (-not $Native -and -not (Test-Command 'docker')) {
+    $missingTools += "Docker Desktop"
+}
+if ($missingTools.Count -gt 0 -and -not $Yes -and -not $Check -and [Environment]::UserInteractive) {
+    Write-Step "Pre-flight checks"
+    Write-Info "Prerequisites to install: $($missingTools -join ', ') (via winget)"
+    if (-not (Confirm-Action "Proceed with all installations and setup?")) {
+        Fail "Setup cancelled by user."
+    }
+    $Yes = $true
+}
+
 Write-Step "1. Git"
 if (Test-Command 'git') {
     Write-Ok "git is installed"

@@ -30,6 +30,99 @@ load_dotenv()
 DEFAULT_SUPERADMIN_EMAIL = "superadmin@base-project.local"
 DEFAULT_MEMBER_EMAIL = "member@base-project.local"
 
+# Default functional roles and their baseline permissions
+DEFAULT_ROLE_PERMISSIONS: dict[str, tuple[str, ...]] = {
+    "Project Manager": (
+        "workspaces:read", "workspaces:update", "governance:read",
+        "spaces:read", "spaces:create", "spaces:update", "spaces:archive", "spaces:freeze",
+        "folders:create", "folders:update", "folders:delete",
+        "lists:create", "lists:update", "lists:delete",
+        "issues:read", "issues:create", "issues:update", "issues:delete",
+        "issues:transition", "issues:assign", "issues:bulk",
+        "comments:create", "comments:update", "comments:delete",
+        "attachments:upload", "attachments:delete",
+        "sprints:read", "sprints:create", "sprints:update", "sprints:delete",
+        "sprints:start", "sprints:complete", "backlog:manage",
+        "workflow:read", "workflow:create", "workflow:update",
+        "initiatives:read", "initiatives:create", "initiatives:update", "initiatives:link",
+        "time:read", "time:log", "time:manage", "timesheets:approve",
+        "view_reports", "reports:read", "reports:create", "reports:update",
+        "reports:export", "reports:schedule",
+        "releases:read", "releases:create", "releases:update",
+        "ai:chat", "poker:participate", "poker:manage",
+        "timeline:read", "timeline:manage",
+        "notifications:read", "activity:read",
+        "storage:read", "integrations:read",
+    ),
+    "Product Owner": (
+        "workspaces:read", "governance:read",
+        "spaces:read", "spaces:create", "spaces:update",
+        "folders:create", "folders:update",
+        "lists:create", "lists:update",
+        "issues:read", "issues:create", "issues:update", "issues:transition", "issues:assign",
+        "comments:create", "comments:update",
+        "attachments:upload",
+        "sprints:read", "sprints:create", "sprints:update",
+        "sprints:start", "sprints:complete", "backlog:manage",
+        "workflow:read",
+        "initiatives:read", "initiatives:create", "initiatives:update",
+        "initiatives:delete", "initiatives:link",
+        "time:read", "time:log",
+        "view_reports", "reports:read", "reports:create", "reports:export",
+        "releases:read", "releases:create", "releases:update",
+        "ai:chat", "poker:participate", "poker:manage",
+        "timeline:read", "timeline:manage",
+        "notifications:read", "activity:read",
+    ),
+    "Developer": (
+        "workspaces:read",
+        "spaces:read",
+        "issues:read", "issues:create", "issues:update", "issues:transition",
+        "comments:create", "comments:update",
+        "attachments:upload",
+        "sprints:read",
+        "workflow:read",
+        "initiatives:read",
+        "time:read", "time:log",
+        "releases:read",
+        "ai:chat", "poker:participate",
+        "timeline:read",
+        "notifications:read", "activity:read",
+        "storage:read", "integrations:read",
+    ),
+    "QA Engineer": (
+        "workspaces:read",
+        "spaces:read",
+        "issues:read", "issues:create", "issues:update", "issues:transition",
+        "comments:create", "comments:update",
+        "attachments:upload",
+        "sprints:read",
+        "workflow:read",
+        "time:read", "time:log",
+        "view_reports", "reports:read", "reports:export",
+        "releases:read",
+        "ai:chat", "poker:participate",
+        "timeline:read",
+        "notifications:read", "activity:read",
+    ),
+    "Stakeholder": (
+        "workspaces:read",
+        "spaces:read",
+        "issues:read",
+        "sprints:read",
+        "initiatives:read",
+        "view_reports", "reports:read",
+        "timeline:read",
+        "notifications:read", "activity:read",
+    ),
+    "Finance Manager": (
+        "workspaces:read", "governance:read",
+        "time:read", "time:manage", "timesheets:approve",
+        "view_reports", "reports:read", "reports:create", "reports:export", "reports:schedule",
+        "notifications:read", "activity:read",
+    ),
+}
+
 
 def _get_or_create_role(session: Session, name: str) -> Role:
     role = session.query(Role).filter(Role.name == name).first()
@@ -142,6 +235,17 @@ def seed_database() -> bool:
         _assign_permission(session, admin_role.id, manage_users_permission.id)
         for permission in target_permissions:
             _assign_permission(session, admin_role.id, permission.id)
+
+        # Seed additional functional roles and their mapped permissions
+        perm_by_slug = {p.machine_name: p for p in target_permissions}
+        perm_by_slug[manage_users_permission.machine_name] = manage_users_permission
+
+        for role_name, perms in DEFAULT_ROLE_PERMISSIONS.items():
+            functional_role = _get_or_create_role(session, role_name)
+            for p_slug in perms:
+                perm_obj = perm_by_slug.get(p_slug)
+                if perm_obj:
+                    _assign_permission(session, functional_role.id, perm_obj.id)
 
         # Member is deliberately granted nothing. It is the least-privileged role — also the
         # one `set_password_after_registration_controller` gives every self-registered

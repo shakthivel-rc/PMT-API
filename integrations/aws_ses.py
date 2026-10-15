@@ -47,11 +47,29 @@ def send_email(recipient_email: str, email_template: EmailTemplate,
             part.add_header("Content-Disposition", "attachment", filename=name)
             msg.attach(part)
 
-        if use_tls:
-            server = smtplib.SMTP(smtp_host, smtp_port)
-            server.starttls()
-        else:
-            server = smtplib.SMTP(smtp_host, smtp_port)
+        def _connect_smtp(host: str, port: int, tls: bool):
+            srv = smtplib.SMTP(host, port, timeout=10)
+            if tls:
+                srv.starttls()
+            return srv
+
+        server = None
+        hosts_to_try = [smtp_host]
+        if smtp_host == "host.docker.internal":
+            hosts_to_try.append("127.0.0.1")
+        elif smtp_host in ("localhost", "127.0.0.1") and os.path.exists("/.dockerenv"):
+            hosts_to_try.append("host.docker.internal")
+
+        last_err = None
+        for h in hosts_to_try:
+            try:
+                server = _connect_smtp(h, smtp_port, use_tls)
+                break
+            except Exception as err:
+                last_err = err
+
+        if server is None:
+            raise last_err or RuntimeError(f"Could not connect to SMTP server {smtp_host}:{smtp_port}")
 
         if smtp_username and smtp_password:
             server.login(smtp_username, smtp_password)

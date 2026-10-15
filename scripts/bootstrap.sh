@@ -144,28 +144,74 @@ except Exception:
 # Where setup finishes, whichever route it took.
 nx_summary() {
     local app_url="$1" health_url="$2" native="${3:-}"
+    local superadmin_email superadmin_pass
 
-    nx_step "Ready"
-    if [ -n "$native" ]; then
-        nx_info "Start both servers with:  make dev"
-    fi
-    nx_info "App        →  ${app_url}"
-    nx_info "API health →  ${health_url}"
+    superadmin_email="$(nx_env_get SUPERADMIN_EMAIL "$ENV_FILE" 2>/dev/null || true)"
+    [ -n "$superadmin_email" ] || superadmin_email="superadmin@base-project.local"
+    superadmin_pass="$(nx_env_get SUPERADMIN_PASSWORD "$ENV_FILE" 2>/dev/null || true)"
+
+    nx_step "========================================================================"
+    nx_bold "                   PMT Setup Completed Successfully!"
+    nx_step "========================================================================"
+    nx_ok "Application:  ${app_url}"
+    nx_ok "API Health:   ${health_url}"
     printf '\n' >&2
-    # Matches DEFAULT_SUPERADMIN_EMAIL in seeders/user_seeder.py. Overridable with
-    # SUPERADMIN_EMAIL; this line names the default because that is what a fresh setup gets.
-    nx_info "Sign in as  superadmin@base-project.local  with the SUPERADMIN_PASSWORD value in .env:"
-    nx_info "  grep '^SUPERADMIN_PASSWORD=' .env"
-    printf '\n' >&2
-    if [ -n "$native" ]; then
-        nx_dim "Tests: make test    ·    All tasks: make"
+    nx_info "Default Administrator Account:"
+    nx_info "  Email:    ${superadmin_email}"
+    if [ -n "$superadmin_pass" ]; then
+        nx_info "  Password: ${superadmin_pass}"
     else
-        nx_dim "Logs: make logs    ·    Stop: make down    ·    All tasks: make"
+        nx_info "  Password: grep '^SUPERADMIN_PASSWORD=' .env"
     fi
+    printf '\n' >&2
+    if [ -n "$native" ]; then
+        nx_info "Start both servers in dev mode with:"
+        nx_bold "  make dev         # or ./scripts/dev.sh"
+        printf '\n' >&2
+        nx_dim "Tests: make test   ·   All tasks: make"
+    else
+        nx_info "Stack is running in the background. Useful commands:"
+        nx_bold "  make logs        # Follow container logs"
+        nx_bold "  make down        # Stop stack"
+        nx_bold "  make restart     # Rebuild and restart"
+        printf '\n' >&2
+        nx_dim "Tests: make test   ·   All tasks: make"
+    fi
+    nx_step "========================================================================"
 }
 
-nx_bold "Base Project setup"
-nx_dim "$(nx_os)/$(nx_arch) · package manager: $(nx_pkg_manager) · bash ${BASH_VERSION%%(*}"
+nx_print_banner() {
+    local node_ver python_ver docker_status
+    node_ver="$(nx_version_of node -v 2>/dev/null || true)"
+    [ -n "$node_ver" ] && node_ver="v${node_ver}" || node_ver="absent"
+
+    python_ver="$(nx_version_of python3 -V 2>/dev/null || true)"
+    [ -n "$python_ver" ] && python_ver="${python_ver}" || python_ver="absent"
+
+    if docker info >/dev/null 2>&1; then
+        docker_status="active"
+    elif nx_have docker; then
+        docker_status="installed (stopped)"
+    else
+        docker_status="absent"
+    fi
+
+    nx_step "========================================================================"
+    nx_bold "                      PMT Setup & Installation"
+    nx_step "========================================================================"
+    nx_dim "  Platform: $(nx_os)/$(nx_arch)  ·  Package Manager: $(nx_pkg_manager)"
+    nx_dim "  Node: ${node_ver}  ·  Python: ${python_ver}  ·  Docker: ${docker_status}"
+    nx_dim "  Target Mode: ${MODE}"
+    nx_step "========================================================================"
+}
+
+nx_print_banner
+
+trap nx_stop_sudo_keepalive EXIT INT TERM
+
+if [ "$CHECK_ONLY" = "0" ]; then
+    nx_preflight_plan
+fi
 
 # =========================================================================================
 nx_step "1. The other half of the project"

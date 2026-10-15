@@ -237,35 +237,59 @@ SQLAlchemy here is synchronous. Therefore:
 Users hold roles; roles carry permissions; a permission is a slug.
 
 - **The slug catalogue is `core/permissions.TARGET_PERMISSION_CATALOG`**, seeded by
-  `seeders/user_seeder.py`. A colon-bearing slug (`users:read`) must be added there, never
-  through `POST /permissions`: that route derives machine names through `to_snake_case`,
-  which strips colons.
-- **Coarse grants stand in for sets of fine slugs.** `manage_users` implies the user-admin
-  slugs through `LEGACY_PERMISSION_IMPLICATIONS`, resolved by `permission_is_satisfied`, so
-  a role can be described in a sentence and keeps working when a fine slug is added to a set
-  it already implies.
+  `seeders/user_seeder.py`. All component permissions across PMT (workspaces, spaces, folders,
+  lists, issues, sprints, workflows, initiatives, time tracking, reports, releases, ai,
+  storage, integrations, poker, timeline, notifications) are declared here.
+- **Colon-bearing slugs (`domain:action`)**: Always declare them in `TARGET_PERMISSION_CATALOG`.
+  Custom permissions can also be created via UI with optional machine names; `POST /permissions`
+  preserves colon-bearing identifiers.
+- **Coarse grants stand in for sets of fine slugs.** `manage_users`, `manage_workspaces`,
+  `manage_issues`, `manage_sprints`, `manage_initiatives`, `manage_reports`, `manage_time`,
+  and `manage_workflows` imply their domain slugs through `LEGACY_PERMISSION_IMPLICATIONS`,
+  resolved by `permission_is_satisfied`.
 - **Routes declare `Depends(check_permissions([...]))`** from `dependencies/auth.py`, and a
   refusal there must be *raised*, never returned: a dependency that returns an error hands
   it to the handler as the resolved value and the handler runs anyway. **Enforced:**
   `tests/unit/test_authz_fail_closed.py`.
 - **`permission_slugs` is the role → permission traversal.** Do not write another one;
-  authorization logic that exists twice eventually disagrees with itself. One pre-existing
-  exception: `routes/activity_logs._has_permission` walks the roles itself and matches the
-  literal `manage_users` slug without `permission_is_satisfied`, so a role that holds every
-  fine slug `manage_users` implies still reads only its own audit entries. Folding it into
-  `permission_slugs` changes who sees the whole log, so it is an owner decision, not a
-  cleanup.
+  authorization logic that exists twice eventually disagrees with itself.
 - **Soft-deleted users and roles grant nothing.** **Enforced:**
   `tests/integration/test_soft_delete_authz.py`.
 - A missing permission is a 403. A resource that exists but is not the caller's is a 404,
   not a 403 (§8).
-- The seeded roles are `Admin` (every catalogue slug plus `manage_users`) and `Member`
-  (none). Self-registration assigns `Member`.
-- The SPA gates presentation on the literal `manage_users` only and does not apply
-  `permission_is_satisfied`, so a role holding every slug `manage_users` implies — but not
-  `manage_users` itself — is authorised by the API while the SPA hides the controls. The
-  API is the enforcement; the SPA's check is presentation. A derived project that gates a
-  screen on a fine-grained slug has to teach the SPA the implication rule first.
+- **Default Roles**:
+  - `Admin`: holds every catalogue slug plus `manage_users`.
+  - `Member`: holds nothing by default (least-privileged role for self-registered users).
+  - `Project Manager`: management of workspaces, spaces, issues, sprints, workflows, initiatives,
+    approvals, and reports.
+  - `Product Owner`: backlog, sprint management, roadmap, initiatives, and issue tracking.
+  - `Developer`: issues execution, time logging, releases, integrations, and AI chat.
+  - `QA Engineer`: issue lifecycle testing, reporting, time logging, and releases.
+  - `Stakeholder`: read-only visibility into workspaces, issues, sprints, timeline, and reports.
+  - `Finance Manager`: time tracking management, timesheet approvals, and financial reports.
+
+### Developer Guide: Adding Permissions for New Components
+
+When creating a new component, module, or feature in PMT, follow this checklist:
+
+1. **Define the Slug in Backend**:
+   Add `("Component Action", "component:action")` to `TARGET_PERMISSION_CATALOG` in
+   `core/permissions.py`. If it falls under an existing coarse capability, add it to
+   `LEGACY_PERMISSION_IMPLICATIONS`.
+2. **Map to Default Roles**:
+   Add the slug to the appropriate role tuples in `DEFAULT_ROLE_PERMISSIONS` in
+   `seeders/user_seeder.py`.
+3. **Database Migration**:
+   Add an idempotent Alembic data migration (or include in the feature migration) that checks
+   if the permission exists in `permissions`, inserts it if absent, and links it in
+   `role_permissions` to `Admin` and relevant default roles.
+4. **Protect API Routes**:
+   In `routes/<feature>.py`, add `dependencies=[Depends(check_permissions(["component:action"]))]`
+   or pass `Depends(check_permissions([...]))` to route handler parameters.
+5. **Protect UI Presentation**:
+   In `pmt-app`, import `hasPermission` from `@/types/index` and wrap the UI controls:
+   `hasPermission(currentUser, ["component:action"])`. The `/rbac` administration screen
+   provides search filtering and assignment modals for all registered permissions.
 
 ## 12. Configuration
 

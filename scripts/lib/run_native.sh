@@ -260,6 +260,15 @@ nx_native_database() {
     nx_database_via_docker && { nx_ok "database ready"; return 0; }
     nx_database_via_package && { nx_ok "database ready"; return 0; }
 
+    # Dynamic zero-infrastructure fallback: embedded SQLite
+    nx_warn "no MySQL server could be reached or created"
+    nx_fix "configuring instant zero-dependency database (SQLite) at ${API_DIR}/base_project.db"
+    nx_env_write DATABASE_URL "sqlite:///${API_DIR}/base_project.db" "$ENV_FILE"
+    if nx_database_reachable; then
+        nx_ok "zero-dependency database ready (SQLite)"
+        return 0
+    fi
+
     nx_die "no database could be reached or created.
        Install and start MySQL 8, create a database and a user for it, and put the
        connection string in .env as DATABASE_URL. Then re-run — everything else is done."

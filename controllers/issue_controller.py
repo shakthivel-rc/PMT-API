@@ -170,6 +170,20 @@ def create_issue(access: WorkspaceAccess, body: IssueCreate, db: Session):
         db.add(issue)
         db.flush()
         svc.record_event(db, issue, "created", access.user_id, to_value=status.id)
+        if body.assignee_id and body.assignee_id != access.user_id:
+            from services.notification import create_notification
+            key_text = f"{space.key}-{issue.number}"
+            create_notification(
+                db,
+                user_id=body.assignee_id,
+                title=f"Assigned to {key_text}",
+                message=f"You were assigned to: {issue.title}",
+                type="assigned",
+                actor_id=access.user_id,
+                workspace_id=access.workspace_id,
+                issue_id=issue.id,
+                link=f"/projects?issue={key_text}",
+            )
         db.commit()
     except IntegrityError:
         db.rollback()
@@ -387,6 +401,21 @@ def update_issue(access: WorkspaceAccess, issue_id: str, body: IssueUpdate, db: 
     if "assignee_id" in changed and body.assignee_id != issue.assignee_id:
         svc.record_event(db, issue, "assigned", access.user_id,
                          from_value=issue.assignee_id, to_value=body.assignee_id)
+        if body.assignee_id and body.assignee_id != access.user_id:
+            from services.notification import create_notification
+            space = ws.get_space(db, access.workspace_id, issue.space_id)
+            key_text = f"{space.key}-{issue.number}" if space else f"issue #{issue.number}"
+            create_notification(
+                db,
+                user_id=body.assignee_id,
+                title=f"Assigned to {key_text}",
+                message=f"You were assigned to: {issue.title}",
+                type="assigned",
+                actor_id=access.user_id,
+                workspace_id=access.workspace_id,
+                issue_id=issue.id,
+                link=f"/projects?issue={key_text}",
+            )
     if "story_points" in changed and body.story_points != issue.story_points:
         # Its own event, with the values, so a sprint report can show `3 → 5` and a
         # burndown can replay the points of any past day (docs/design/08-reports.md §5.5).
@@ -461,6 +490,20 @@ def move_issue(access: WorkspaceAccess, issue_id: str, body: IssueMove, db: Sess
 
     rank = svc.rank_for_drop(db, issue, status.id, neighbours["after"], neighbours["before"])
     svc.set_status(db, issue, status, rank, access.user_id)
+    if issue.assignee_id and issue.assignee_id != access.user_id:
+        from services.notification import create_notification
+        key_text = f"{space.key}-{issue.number}"
+        create_notification(
+            db,
+            user_id=issue.assignee_id,
+            title=f"Status changed on {key_text}",
+            message=f"{key_text} was moved to {status.name}",
+            type="status_changed",
+            actor_id=access.user_id,
+            workspace_id=access.workspace_id,
+            issue_id=issue.id,
+            link=f"/projects?issue={key_text}",
+        )
     db.commit()
     return SuccessResponse(status_code=200,
                            message=_with_wip_warning("Issue moved", status, breach),
