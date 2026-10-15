@@ -37,16 +37,33 @@ def handle_ask_user(ctx: ToolContext, args: dict[str, Any]) -> dict[str, Any]:
 
 def handle_find_space(ctx: ToolContext, args: dict[str, Any]) -> list[dict[str, Any]]:
     query = args.get("query", "").strip()
-    q = ctx.db.query(Space).filter(
+    all_spaces = ctx.db.query(Space).filter(
         Space.workspace_id == ctx.workspace_id,
         Space.deleted == 0,
-    )
-    if query:
-        q = q.filter(or_(
-            Space.name.ilike(f"%{query}%"),
-            Space.key.ilike(f"%{query}%"),
-        ))
-    spaces = q.all()
+    ).all()
+
+    if not query:
+        matched = all_spaces
+    else:
+        q_lower = query.lower()
+        norm_q = re.sub(r'[^a-zA-Z0-9]', '', q_lower)
+        tokens = [t.lower() for t in re.split(r'[-_·\s/|:]+', query) if t]
+
+        matched = []
+        for s in all_spaces:
+            s_name = (s.name or "").lower()
+            s_key = (s.key or "").lower()
+            norm_s1 = re.sub(r'[^a-zA-Z0-9]', '', f"{s_name}{s_key}")
+            norm_s2 = re.sub(r'[^a-zA-Z0-9]', '', f"{s_key}{s_name}")
+
+            if (
+                q_lower in s_name
+                or q_lower in s_key
+                or (norm_q and (norm_q in norm_s1 or norm_q in norm_s2))
+                or (tokens and all(t in s_name or t in s_key for t in tokens))
+            ):
+                matched.append(s)
+
     return [
         {
             "id": s.id,
@@ -56,7 +73,7 @@ def handle_find_space(ctx: ToolContext, args: dict[str, Any]) -> list[dict[str, 
             "is_archived": bool(s.archived_at),
             "is_frozen": bool(s.frozen_at),
         }
-        for s in spaces
+        for s in matched
     ]
 
 

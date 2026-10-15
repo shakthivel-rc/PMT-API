@@ -197,7 +197,15 @@ def get_conversation_history(
                 "created_at": m.created_at.isoformat() if m.created_at else None,
             })
         else:
-            accumulated_tool_calls = []
+            if accumulated_tool_calls:
+                formatted_messages.append({
+                    "id": f"tc-accum-{len(formatted_messages)}",
+                    "role": "assistant",
+                    "content": "Completed requested actions.",
+                    "tool_calls": list(accumulated_tool_calls),
+                    "created_at": None,
+                })
+                accumulated_tool_calls = []
             formatted_messages.append({
                 "id": m.id,
                 "role": m.role,
@@ -207,6 +215,16 @@ def get_conversation_history(
                 "undo_action": m.undo_action,
                 "created_at": m.created_at.isoformat() if m.created_at else None,
             })
+
+    # Flush any trailing accumulated tool calls if the conversation ended after tool calls
+    if accumulated_tool_calls:
+        formatted_messages.append({
+            "id": f"tc-trailing-{len(formatted_messages)}",
+            "role": "assistant",
+            "content": "Completed requested actions.",
+            "tool_calls": list(accumulated_tool_calls),
+            "created_at": None,
+        })
 
     data = {
         "conversation": {

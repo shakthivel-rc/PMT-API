@@ -290,16 +290,24 @@ class ChatGateway:
                 )
             )
 
-        # Turn Loop: execute model -> handle tool calls -> feed back to model (up to 5 turns)
+        # Turn Loop: execute model -> handle tool calls -> feed back to model (up to 10 turns)
         executed_tools_summary: list[dict[str, Any]] = []
         turn_index = len(history_records)
 
-        for _ in range(5):
+        for _ in range(10):
             llm_result: LLMResult = adapter.complete(llm_messages, tools=tool_schemas)
 
             # If no tool calls, model returned its final textual reply
             if not llm_result.tool_calls:
                 reply_text = llm_result.content or ""
+                if not reply_text and executed_tools_summary:
+                    last_tool = executed_tools_summary[-1]
+                    t_res = last_tool.get("result", {})
+                    if isinstance(t_res, dict) and t_res.get("data") and isinstance(t_res["data"], dict) and t_res["data"].get("key"):
+                        reply_text = f"Successfully executed {last_tool.get('tool', 'operation')}: {t_res['data']['key']} - {t_res['data'].get('title', '')}."
+                    else:
+                        reply_text = f"Completed operations: {', '.join(t.get('tool', '') for t in executed_tools_summary)}."
+
                 self._save_message(db, conversation_id, "assistant", reply_text)
                 return ChatTurnResult(
                     conversation_id=conversation_id,
@@ -363,6 +371,28 @@ class ChatGateway:
                     llm_messages.append(LLMMessage(role="tool", tool_call_id=tc.id, name=tc.name, content=f"Resolution error: {resolve_err}"))
                     self._save_message(db, conversation_id, "tool", f"Resolution error: {resolve_err}", tool_call_id=tc.id, name=tc.name)
                     continue
+
+                # Virtual tool: ask_user directly pauses and returns question to user
+                if tc.name == "ask_user":
+                    question = resolved_args.get("question") or tc.arguments.get("question") or "Please provide clarification:"
+                    options = resolved_args.get("options") or tc.arguments.get("options") or []
+                    self._save_message(db, conversation_id, "assistant", question)
+                    clarification_data = None
+                    if options:
+                        clarification_data = {
+                            "tool_name": "ask_user",
+                            "candidates": [
+                                {"id": opt, "name": opt} if isinstance(opt, str) else opt
+                                for opt in options
+                            ],
+                            "raw_args": tc.arguments,
+                        }
+                    return ChatTurnResult(
+                        conversation_id=conversation_id,
+                        reply=question,
+                        clarification=clarification_data,
+                        tool_calls_executed=executed_tools_summary,
+                    )
 
                 # 2. Check RBAC permissions
                 allowed, rbac_err = check_tool_permission(tc.name, user_role)
@@ -464,9 +494,19 @@ class ChatGateway:
                 )
 
         # Fallback if max iterations exceeded
+        fallback_reply = "Operation completed."
+        if executed_tools_summary:
+            last_tool = executed_tools_summary[-1]
+            t_res = last_tool.get("result", {})
+            if isinstance(t_res, dict) and t_res.get("data") and isinstance(t_res["data"], dict) and t_res["data"].get("key"):
+                fallback_reply = f"Successfully executed {last_tool.get('tool', 'operation')}: {t_res['data']['key']} - {t_res['data'].get('title', '')}."
+            else:
+                fallback_reply = f"Completed operations: {', '.join(t.get('tool', '') for t in executed_tools_summary)}."
+
+        self._save_message(db, conversation_id, "assistant", fallback_reply)
         return ChatTurnResult(
             conversation_id=conversation_id,
-            reply="Operation completed.",
+            reply=fallback_reply,
             tool_calls_executed=executed_tools_summary,
         )
 

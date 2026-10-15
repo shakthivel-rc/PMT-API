@@ -286,7 +286,7 @@ PQLExecuteRequest                        required[query] limit:integer,page:inte
 PQLExecuteResponse                       required[limit,page,records,total] limit:integer,page:integer,records:[IssueCard],total:integer
 PQLValidateRequest                       required[query] query:string
 PQLValidateResponse                      required[valid] error:string|null,valid:boolean
-PermissionCreate                         required[permission_name] permission_name:string
+PermissionCreate                         required[permission_name] machine_name:string|null,permission_name:string
 PersonRef                                required[display_name,id] display_name:string,id:string
 PokerAcceptRequest                       required[story_points] story_points:integer
 PokerSessionState                        required[created_by,id,sprint_id,status,workspace_id] active_issue_id:string|null,active_issue_key:string|null,active_issue_title:string|null,average:number|null,created_by:string,highest_vote:integer|null,id:string,lowest_vote:integer|null,median:number|null,sprint_id:string,status:string,total_voters:integer,voted_count:integer,voters:[PokerVoterState],workspace_id:string

@@ -60,44 +60,122 @@ def resolve_space(db: Session, workspace_id: str, query: str | None) -> Resoluti
     if clean_query.startswith("$space:"):
         clean_query = clean_query[len("$space:"):]
 
-    # Match by key (case-insensitive exact)
-    space_by_key = db.query(Space).filter(
+    # Fetch all active spaces for this workspace
+    all_spaces = db.query(Space).filter(
         Space.workspace_id == workspace_id,
-        func.lower(Space.key) == clean_query.lower(),
-        Space.deleted == 0,
-    ).first()
-    if space_by_key:
-        return ResolutionResult(success=True, value=space_by_key.id, entity=space_by_key)
-
-    # Match by exact name (case-insensitive)
-    space_by_name = db.query(Space).filter(
-        Space.workspace_id == workspace_id,
-        func.lower(Space.name) == clean_query.lower(),
-        Space.deleted == 0,
-    ).first()
-    if space_by_name:
-        return ResolutionResult(success=True, value=space_by_name.id, entity=space_by_name)
-
-    # Match by substring
-    candidates = db.query(Space).filter(
-        Space.workspace_id == workspace_id,
-        or_(
-            Space.name.ilike(f"%{clean_query}%"),
-            Space.key.ilike(f"%{clean_query}%"),
-        ),
         Space.deleted == 0,
     ).all()
 
-    if len(candidates) == 1:
-        return ResolutionResult(success=True, value=candidates[0].id, entity=candidates[0])
-    elif len(candidates) > 1:
-        cand_list = [{"id": s.id, "name": s.name, "key": s.key} for s in candidates]
+    if not all_spaces:
+        return ResolutionResult(success=False, error="No spaces found in workspace.")
+
+    cq_lower = clean_query.lower()
+    norm_query = re.sub(r'[^a-zA-Z0-9]', '', cq_lower)
+
+    # 1. Match by key (case-insensitive exact)
+    for s in all_spaces:
+        if s.key and s.key.lower() == cq_lower:
+            return ResolutionResult(success=True, value=s.id, entity=s)
+
+    # 2. Match by exact name (case-insensitive)
+    for s in all_spaces:
+        if s.name and s.name.lower() == cq_lower:
+            return ResolutionResult(success=True, value=s.id, entity=s)
+
+    # 3. Match normalized exact name or key
+    if norm_query:
+        for s in all_spaces:
+            norm_name = re.sub(r'[^a-zA-Z0-9]', '', s.name.lower()) if s.name else ""
+            norm_key = re.sub(r'[^a-zA-Z0-9]', '', s.key.lower()) if s.key else ""
+            if norm_query in (norm_name, norm_key):
+                return ResolutionResult(success=True, value=s.id, entity=s)
+
+    # 4. Match composite name and key variants (e.g. "Features - PAY", "features-pay", "features · pay", "Features PAY")
+    for s in all_spaces:
+        variants = [
+            f"{s.name} {s.key}".lower(),
+            f"{s.name}-{s.key}".lower(),
+            f"{s.name} - {s.key}".lower(),
+            f"{s.name} · {s.key}".lower(),
+            f"{s.name}_{s.key}".lower(),
+            f"{s.key} {s.name}".lower(),
+            f"{s.key}-{s.name}".lower(),
+            f"{s.key} - {s.name}".lower(),
+            f"{s.key} · {s.name}".lower(),
+        ]
+        if cq_lower in variants:
+            return ResolutionResult(success=True, value=s.id, entity=s)
+
+    # 5. Match normalized composite (e.g. "featurespay")
+    if norm_query:
+        norm_exact_matches = []
+        for s in all_spaces:
+            norm_comb1 = re.sub(r'[^a-zA-Z0-9]', '', f"{s.name}{s.key}".lower())
+            norm_comb2 = re.sub(r'[^a-zA-Z0-9]', '', f"{s.key}{s.name}".lower())
+            if norm_query in (norm_comb1, norm_comb2):
+                norm_exact_matches.append(s)
+        if len(norm_exact_matches) == 1:
+            return ResolutionResult(success=True, value=norm_exact_matches[0].id, entity=norm_exact_matches[0])
+        elif len(norm_exact_matches) > 1:
+            cand_list = [{"id": s.id, "name": s.name, "key": s.key} for s in norm_exact_matches]
+            return ResolutionResult(
+                success=False,
+                is_ambiguous=True,
+                candidates=cand_list,
+                error=f"Multiple spaces matched '{clean_query}': {', '.join(s.name for s in norm_exact_matches)}",
+            )
+
+    # 6. Match by substring
+    sub_matches = [
+        s for s in all_spaces
+        if (s.name and cq_lower in s.name.lower()) or (s.key and cq_lower in s.key.lower())
+    ]
+    if len(sub_matches) == 1:
+        return ResolutionResult(success=True, value=sub_matches[0].id, entity=sub_matches[0])
+    elif len(sub_matches) > 1:
+        cand_list = [{"id": s.id, "name": s.name, "key": s.key} for s in sub_matches]
         return ResolutionResult(
             success=False,
             is_ambiguous=True,
             candidates=cand_list,
-            error=f"Multiple spaces matched '{clean_query}': {', '.join(s.name for s in candidates)}",
+            error=f"Multiple spaces matched '{clean_query}': {', '.join(s.name for s in sub_matches)}",
         )
+
+    # 7. Tokenized match (e.g. user passes ["features", "pay"])
+    tokens = [t.lower() for t in re.split(r'[-_·\s/|:]+', clean_query) if t]
+    if len(tokens) >= 2:
+        token_matches = [
+            s for s in all_spaces
+            if all(t in (s.name or "").lower() or t in (s.key or "").lower() for t in tokens)
+        ]
+        if len(token_matches) == 1:
+            return ResolutionResult(success=True, value=token_matches[0].id, entity=token_matches[0])
+        elif len(token_matches) > 1:
+            cand_list = [{"id": s.id, "name": s.name, "key": s.key} for s in token_matches]
+            return ResolutionResult(
+                success=False,
+                is_ambiguous=True,
+                candidates=cand_list,
+                error=f"Multiple spaces matched '{clean_query}': {', '.join(s.name for s in token_matches)}",
+            )
+
+    # 8. Normalized substring match
+    if norm_query and len(norm_query) >= 3:
+        norm_sub_matches = [
+            s for s in all_spaces
+            if norm_query in re.sub(r'[^a-zA-Z0-9]', '', f"{s.name}{s.key}".lower())
+            or norm_query in re.sub(r'[^a-zA-Z0-9]', '', f"{s.key}{s.name}".lower())
+        ]
+        if len(norm_sub_matches) == 1:
+            return ResolutionResult(success=True, value=norm_sub_matches[0].id, entity=norm_sub_matches[0])
+        elif len(norm_sub_matches) > 1:
+            cand_list = [{"id": s.id, "name": s.name, "key": s.key} for s in norm_sub_matches]
+            return ResolutionResult(
+                success=False,
+                is_ambiguous=True,
+                candidates=cand_list,
+                error=f"Multiple spaces matched '{clean_query}': {', '.join(s.name for s in norm_sub_matches)}",
+            )
 
     return ResolutionResult(success=False, error=f"Space '{clean_query}' not found in workspace.")
 

@@ -165,6 +165,19 @@ def test_resolvers(db):
     assert res_sp_name.success is True
     assert res_sp_name.value == sp.id
 
+    # Composite space name tests
+    res_sp_comp1 = resolve_space(db, ws_id, "billing-bil")
+    assert res_sp_comp1.success is True
+    assert res_sp_comp1.value == sp.id
+
+    res_sp_comp2 = resolve_space(db, ws_id, "Billing · BIL")
+    assert res_sp_comp2.success is True
+    assert res_sp_comp2.value == sp.id
+
+    res_sp_comp3 = resolve_space(db, ws_id, "Billing - BIL")
+    assert res_sp_comp3.success is True
+    assert res_sp_comp3.value == sp.id
+
     # 2. List resolver auto-selection (Rule 3)
     res_list = resolve_list(db, ws_id, sp.id, None)
     assert res_list.success is True
@@ -537,3 +550,53 @@ def test_gateway_t2_confirmation_card_generation(db):
     assert confirm_res.error is None
     assert len(confirm_res.tool_calls_executed) == 1
     assert confirm_res.tool_calls_executed[0]["tool"] == "space_create"
+
+
+def test_gateway_ask_user_pauses_execution(db):
+    u = User(id=str(uuid.uuid4()), username="test_asker", email="asker@example.com", first_name="Test", last_name="Asker", organization="Acme", department="Eng")
+    db.add(u)
+    db.flush()
+
+    ws_id = str(uuid.uuid4())
+    ws = Workspace(id=ws_id, name="Test Ask WS", slug=f"ws-{uuid.uuid4().hex[:6]}", created_by=u.id)
+    db.add(ws)
+    db.flush()
+
+    wm = WorkspaceMember(workspace_id=ws_id, user_id=u.id, role="admin")
+    db.add(wm)
+    db.commit()
+
+    access = WorkspaceAccess(workspace_id=ws_id, user_id=u.id, role="admin")
+
+    mock_adapter = MockLLMAdapter(
+        canned_responses=[
+            LLMResult(
+                content=None,
+                tool_calls=[
+                    LLMToolCall(
+                        id="call_ask",
+                        name="ask_user",
+                        arguments={
+                            "question": "Which list should I create this under?",
+                            "options": ["UPI", "Dashboard"],
+                        },
+                    )
+                ],
+            )
+        ]
+    )
+
+    result = chat_gateway.execute_turn(
+        db=db,
+        access=access,
+        current_user=u,
+        message="Create ticket under features",
+        adapter=mock_adapter,
+    )
+
+    assert result.error is None
+    assert result.reply == "Which list should I create this under?"
+    assert result.clarification is not None
+    assert result.clarification["tool_name"] == "ask_user"
+    assert len(result.clarification["candidates"]) == 2
+
