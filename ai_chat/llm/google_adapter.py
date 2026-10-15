@@ -1,7 +1,9 @@
 """Google Gemini LLM adapter."""
 from __future__ import annotations
 
+import asyncio
 import json
+import time
 from typing import Any, Optional
 
 import httpx
@@ -207,18 +209,25 @@ class GoogleAdapter(BaseLLMAdapter):
         url = f"{self.base_url}/models/{self.model}:generateContent"
         params = {"key": self.api_key}
         headers = {"Content-Type": "application/json"}
+        max_retries = 3
+        backoff = 1.0
         with httpx.Client(timeout=self.timeout) as client:
-            resp = client.post(url, params=params, headers=headers, json=payload)
-            if resp.is_error:
-                error_msg = f"HTTP {resp.status_code}"
-                try:
-                    err_json = resp.json()
-                    error_msg = err_json.get("error", {}).get("message") or str(err_json)
-                except Exception:
-                    error_msg = resp.text[:300]
-                raise RuntimeError(f"Google Gemini API error ({resp.status_code}): {error_msg}")
-            data = resp.json()
-            return self._parse_response(data)
+            for attempt in range(max_retries):
+                resp = client.post(url, params=params, headers=headers, json=payload)
+                if resp.is_error:
+                    if resp.status_code in (503, 429) and attempt < max_retries - 1:
+                        time.sleep(backoff)
+                        backoff *= 2
+                        continue
+                    error_msg = f"HTTP {resp.status_code}"
+                    try:
+                        err_json = resp.json()
+                        error_msg = err_json.get("error", {}).get("message") or str(err_json)
+                    except Exception:
+                        error_msg = resp.text[:300]
+                    raise RuntimeError(f"Google Gemini API error ({resp.status_code}): {error_msg}")
+                data = resp.json()
+                return self._parse_response(data)
 
     async def complete_async(
         self,
@@ -231,15 +240,22 @@ class GoogleAdapter(BaseLLMAdapter):
         url = f"{self.base_url}/models/{self.model}:generateContent"
         params = {"key": self.api_key}
         headers = {"Content-Type": "application/json"}
+        max_retries = 3
+        backoff = 1.0
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            resp = await client.post(url, params=params, headers=headers, json=payload)
-            if resp.is_error:
-                error_msg = f"HTTP {resp.status_code}"
-                try:
-                    err_json = resp.json()
-                    error_msg = err_json.get("error", {}).get("message") or str(err_json)
-                except Exception:
-                    error_msg = resp.text[:300]
-                raise RuntimeError(f"Google Gemini API error ({resp.status_code}): {error_msg}")
-            data = resp.json()
-            return self._parse_response(data)
+            for attempt in range(max_retries):
+                resp = await client.post(url, params=params, headers=headers, json=payload)
+                if resp.is_error:
+                    if resp.status_code in (503, 429) and attempt < max_retries - 1:
+                        await asyncio.sleep(backoff)
+                        backoff *= 2
+                        continue
+                    error_msg = f"HTTP {resp.status_code}"
+                    try:
+                        err_json = resp.json()
+                        error_msg = err_json.get("error", {}).get("message") or str(err_json)
+                    except Exception:
+                        error_msg = resp.text[:300]
+                    raise RuntimeError(f"Google Gemini API error ({resp.status_code}): {error_msg}")
+                data = resp.json()
+                return self._parse_response(data)

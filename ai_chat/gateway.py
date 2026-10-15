@@ -361,6 +361,8 @@ class ChatGateway:
                         conversation_id=conversation_id,
                         reply=clarify_text,
                         clarification={
+                            "question": clarify_text,
+                            "options": cand_names,
                             "tool_name": tc.name,
                             "candidates": candidates,
                             "raw_args": tc.arguments,
@@ -379,12 +381,19 @@ class ChatGateway:
                     self._save_message(db, conversation_id, "assistant", question)
                     clarification_data = None
                     if options:
+                        option_strings = [
+                            opt if isinstance(opt, str) else opt.get("name") or opt.get("id") or str(opt)
+                            for opt in options
+                        ]
+                        candidates_list = [
+                            {"id": opt, "name": opt} if isinstance(opt, str) else opt
+                            for opt in options
+                        ]
                         clarification_data = {
+                            "question": question,
+                            "options": option_strings,
                             "tool_name": "ask_user",
-                            "candidates": [
-                                {"id": opt, "name": opt} if isinstance(opt, str) else opt
-                                for opt in options
-                            ],
+                            "candidates": candidates_list,
                             "raw_args": tc.arguments,
                         }
                     return ChatTurnResult(
