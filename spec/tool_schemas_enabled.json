@@ -3224,6 +3224,179 @@
     "tier": "T2 (<=25 items) / T3 (26-100); hard cap 100",
     "core": false
    }
+  },
+  {
+   "name": "issue_create_from_attachment",
+   "description": "Create an issue and automatically attach an uploaded chat attachment (screenshot, wireframe, log, or document). Preserves visual context directly on the ticket. Rules: Target list and space must not be frozen.",
+   "parameters": {
+    "type": "object",
+    "required": [
+     "attachment_id",
+     "list_id",
+     "title"
+    ],
+    "properties": {
+     "attachment_id": {
+      "type": "string",
+      "description": "UUID of the uploaded chat attachment to link"
+     },
+     "list_id": {
+      "type": "string",
+      "description": "Target list id or name (resolved server-side)"
+     },
+     "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Issue title / summary"
+     },
+     "description": {
+      "type": "string",
+      "description": "Detailed description, steps to reproduce, or error stack trace in Markdown"
+     },
+     "type": {
+      "type": "string",
+      "enum": [
+       "task",
+       "bug",
+       "story",
+       "epic"
+      ],
+      "default": "bug",
+      "description": "Issue type"
+     },
+     "priority": {
+      "type": "string",
+      "enum": [
+       "urgent",
+       "high",
+       "medium",
+       "low"
+      ],
+      "default": "high",
+      "description": "Priority level"
+     },
+     "assignee_id": {
+      "type": "string",
+      "description": "Assignee member name or user id"
+     }
+    },
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T1",
+    "core": true
+   }
+  },
+  {
+   "name": "workspace_scaffold_from_spec",
+   "description": "Scaffold a Space, Project Lists, Sprint, and candidate Backlog issues extracted from an uploaded PRD or specification document. Always previews a T2 Confirmation Card before executing.",
+   "parameters": {
+    "type": "object",
+    "required": [
+     "space_name",
+     "lists"
+    ],
+    "properties": {
+     "space_name": {
+      "type": "string",
+      "description": "Target or new space name"
+     },
+     "space_key": {
+      "type": "string",
+      "description": "Space key prefix (2-6 uppercase characters, e.g. MOB, PAY)"
+     },
+     "lists": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "List names to create under the space (e.g. [\"Authentication\", \"Checkout Flow\"])"
+     },
+     "sprint_name": {
+      "type": "string",
+      "description": "Optional sprint name to initialize"
+     },
+     "initial_issues": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "title": {
+         "type": "string"
+        },
+        "list_name": {
+         "type": "string"
+        },
+        "type": {
+         "type": "string"
+        },
+        "priority": {
+         "type": "string"
+        }
+       }
+      },
+      "description": "Candidate backlog items to seed"
+     }
+    },
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "structure",
+    "tier": "T2",
+    "core": false
+   }
+  },
+  {
+   "name": "bulk_issue_create",
+   "description": "Batch-create multiple tickets from parsed rows of an uploaded CSV, defect spreadsheet, or backlog table. Previews a T2 Confirmation Card before executing.",
+   "parameters": {
+    "type": "object",
+    "required": [
+     "list_id",
+     "issues"
+    ],
+    "properties": {
+     "list_id": {
+      "type": "string",
+      "description": "Target list id or name"
+     },
+     "issues": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "required": [
+        "title"
+       ],
+       "properties": {
+        "title": {
+         "type": "string"
+        },
+        "description": {
+         "type": "string"
+        },
+        "type": {
+         "type": "string"
+        },
+        "priority": {
+         "type": "string"
+        },
+        "assignee_id": {
+         "type": "string"
+        }
+       }
+      },
+      "description": "Array of tickets to batch create"
+     }
+    },
+    "additionalProperties": false
+   },
+   "_meta": {
+    "domain": "work_items",
+    "tier": "T2",
+    "core": false
+   }
   }
  ]
 }

@@ -15,12 +15,22 @@ class LLMToolCall:
 
 
 @dataclass
+class AttachmentPayload:
+    id: str
+    mime_type: str
+    data_base64: Optional[str] = None
+    text_content: Optional[str] = None
+    filename: Optional[str] = None
+
+
+@dataclass
 class LLMMessage:
     role: str  # "system", "user", "assistant", "tool"
     content: Optional[str] = None
     name: Optional[str] = None
     tool_call_id: Optional[str] = None
     tool_calls: Optional[list[LLMToolCall]] = None
+    attachments: Optional[list[AttachmentPayload]] = None
 
     def to_dict(self) -> dict[str, Any]:
         d: dict[str, Any] = {"role": self.role}

@@ -1,14 +1,20 @@
 """Chat routes for the AI Chat Gateway."""
 from __future__ import annotations
 
+import asyncio
+import base64
+import email
+import json
 import re
 from dataclasses import asdict
 from typing import Any, Optional
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from ai_chat.gateway import chat_gateway
+from ai_chat.llm.fetcher import discover_provider_models
 from ai_chat.llm.settings import (
     delete_user_llm_settings,
     get_user_llm_settings,
@@ -17,10 +23,11 @@ from ai_chat.llm.settings import (
 from ai_chat.registry import TOOL_REGISTRY
 from db.session import get_db
 from dependencies.workspace import WorkspaceAccess, as_guest, caller_id
-from ai_chat.llm.fetcher import discover_provider_models
 from models.chat_session import ChatConversation, ChatMessageRecord
 from models.user import User
+from models.workspace import Workspace
 from schemas.chat import (
+    ChatAttachmentSummary,
     ChatRequest,
     ChatResponseData,
     ChatSettingsResponseData,
@@ -30,6 +37,7 @@ from schemas.chat import (
     ModelInfoItem,
 )
 from schemas.response import ErrorResponse, SuccessResponse
+from services import chat_attachment_service
 
 
 def sanitize_error_message(msg: str) -> str:
@@ -84,6 +92,7 @@ def handle_chat_turn(
             cancel_action_id=body.cancel_action_id,
             undo_action_id=body.undo_action_id,
             context_vars=body.context_vars,
+            attachment_ids=body.attachment_ids,
         )
     except Exception as e:
         clean_msg = sanitize_error_message(str(e)) or "An error occurred during chat turn execution"
@@ -110,6 +119,145 @@ def handle_chat_turn(
         status_code=200,
         message="Turn completed successfully",
         data=ChatResponseData(**asdict(result)),
+    )
+
+
+@router.post("/attachments", response_model=SuccessResponse[ChatAttachmentSummary], status_code=201)
+async def upload_chat_attachment(
+    request: Request,
+    access: WorkspaceAccess = Depends(as_guest),
+    db: Session = Depends(get_db),
+):
+    raw_body = await request.body()
+    content_type_hdr = request.headers.get("content-type", "")
+    conversation_id = request.query_params.get("conversation_id")
+
+    filename = ""
+    file_bytes = b""
+    content_type = "application/octet-stream"
+
+    if "application/json" in content_type_hdr.lower():
+        try:
+            parsed = json.loads(raw_body)
+            filename = parsed.get("filename", "attachment.bin")
+            content_type = parsed.get("content_type", "application/octet-stream")
+            b64_data = parsed.get("content_base64", "")
+            file_bytes = base64.b64decode(b64_data)
+            if not conversation_id:
+                conversation_id = parsed.get("conversation_id")
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=ErrorResponse(
+                    status_code=422,
+                    message=f"Invalid JSON base64 upload payload: {exc}",
+                    data={},
+                ).model_dump(),
+            )
+    elif "multipart/form-data" in content_type_hdr.lower():
+        try:
+            header_bytes = f"Content-Type: {content_type_hdr}\r\n\r\n".encode()
+            msg = email.message_from_bytes(header_bytes + raw_body)
+            for part in msg.walk():
+                part_filename = part.get_filename()
+                if part_filename:
+                    filename = part_filename
+                    content_type = part.get_content_type() or "application/octet-stream"
+                    file_bytes = part.get_payload(decode=True) or b""
+                    break
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=ErrorResponse(
+                    status_code=422,
+                    message=f"Failed to parse multipart upload: {exc}",
+                    data={},
+                ).model_dump(),
+            )
+
+    if not filename or not file_bytes:
+        raise HTTPException(
+            status_code=422,
+            detail=ErrorResponse(
+                status_code=422,
+                message="No valid file data received in upload request.",
+                data={},
+            ).model_dump(),
+        )
+
+    def _do_upload() -> ChatAttachmentSummary:
+        ws = db.query(Workspace).filter(Workspace.id == access.workspace_id).first()
+        if not ws:
+            raise HTTPException(
+                status_code=404,
+                detail=ErrorResponse(
+                    status_code=404, message="Workspace not found", data={}
+                ).model_dump(),
+            )
+
+        try:
+            attachment = chat_attachment_service.upload_chat_attachment(
+                db=db,
+                workspace=ws,
+                user_id=access.user_id,
+                filename=filename,
+                content=file_bytes,
+                declared_mime=content_type,
+                conversation_id=conversation_id,
+            )
+        except ValueError as val_err:
+            raise HTTPException(
+                status_code=400,
+                detail=ErrorResponse(
+                    status_code=400,
+                    message=str(val_err),
+                    data={},
+                ).model_dump(),
+            )
+
+        return chat_attachment_service.attachment_to_summary(access.workspace_id, attachment)
+
+    summary = await asyncio.to_thread(_do_upload)
+    return SuccessResponse(
+        status_code=201,
+        message="Attachment uploaded successfully",
+        data=summary,
+    )
+
+
+@router.get("/attachments/{attachment_id}")
+def get_chat_attachment(
+    attachment_id: str,
+    access: WorkspaceAccess = Depends(as_guest),
+    db: Session = Depends(get_db),
+):
+    """Serve or download a chat message attachment."""
+    ws = db.query(Workspace).filter(Workspace.id == access.workspace_id).first()
+    if not ws:
+        raise HTTPException(
+            status_code=404,
+            detail=ErrorResponse(
+                status_code=404, message="Workspace not found", data={}
+            ).model_dump(),
+        )
+
+    attachment = chat_attachment_service.get_chat_attachment(
+        db, access.workspace_id, attachment_id
+    )
+    if not attachment:
+        raise HTTPException(
+            status_code=404,
+            detail=ErrorResponse(
+                status_code=404, message="Attachment not found", data={}
+            ).model_dump(),
+        )
+
+    content_bytes = chat_attachment_service.read_chat_attachment_bytes(ws, attachment)
+    encoded_fn = quote(attachment.original_filename)
+    return Response(
+        content=content_bytes,
+        media_type=attachment.mime_type,
+        headers={"Content-Disposition": f'inline; filename="{encoded_fn}"'},
     )
 
 
@@ -177,6 +325,15 @@ def get_conversation_history(
     for m in messages:
         if m.role == "tool":
             continue
+
+        att_records = chat_attachment_service.get_attachments_for_message(db, m.id)
+        att_summaries = [
+            chat_attachment_service.attachment_to_summary(
+                access.workspace_id, att
+            ).model_dump()
+            for att in att_records
+        ]
+
         if m.role == "assistant":
             if m.tool_calls:
                 accumulated_tool_calls.extend(m.tool_calls)
@@ -184,7 +341,9 @@ def get_conversation_history(
                 continue
 
             # Attach any accumulated tool calls to this message
-            tool_calls_to_show = m.tool_calls or (list(accumulated_tool_calls) if accumulated_tool_calls else None)
+            tool_calls_to_show = m.tool_calls or (
+                list(accumulated_tool_calls) if accumulated_tool_calls else None
+            )
             accumulated_tool_calls = []
 
             formatted_messages.append({
@@ -195,6 +354,7 @@ def get_conversation_history(
                 "confirm_card": m.confirm_card,
                 "undo_action": m.undo_action,
                 "created_at": m.created_at.isoformat() if m.created_at else None,
+                "attachments": att_summaries,
             })
         else:
             if accumulated_tool_calls:
@@ -204,6 +364,7 @@ def get_conversation_history(
                     "content": "Completed requested actions.",
                     "tool_calls": list(accumulated_tool_calls),
                     "created_at": None,
+                    "attachments": [],
                 })
                 accumulated_tool_calls = []
             formatted_messages.append({
@@ -214,6 +375,7 @@ def get_conversation_history(
                 "confirm_card": m.confirm_card,
                 "undo_action": m.undo_action,
                 "created_at": m.created_at.isoformat() if m.created_at else None,
+                "attachments": att_summaries,
             })
 
     # Flush any trailing accumulated tool calls if the conversation ended after tool calls

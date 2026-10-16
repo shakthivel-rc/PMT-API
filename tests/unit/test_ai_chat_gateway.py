@@ -58,7 +58,7 @@ from models.workspace import Workspace, WorkspaceMember
 
 def test_registry_loads_enabled_tools_only():
     tools = TOOL_REGISTRY.list_tools()
-    assert len(tools) == 122
+    assert len(tools) == 125
     for t in tools:
         assert t.exposure == "enabled"
 

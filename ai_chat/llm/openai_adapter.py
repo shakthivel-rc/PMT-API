@@ -47,7 +47,29 @@ class OpenAIAdapter(BaseLLMAdapter):
         formatted = []
         for m in messages:
             msg: dict[str, Any] = {"role": m.role}
-            if m.content is not None:
+            if m.attachments and m.role == "user":
+                content_parts: list[dict[str, Any]] = []
+                for att in m.attachments:
+                    if att.data_base64 and att.mime_type.startswith("image/"):
+                        content_parts.append({
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{att.mime_type};base64,{att.data_base64}"
+                            },
+                        })
+                    elif att.text_content:
+                        fn = att.filename or "Document"
+                        content_parts.append({
+                            "type": "text",
+                            "text": (
+                                f"--- Attached Document: {fn} ({att.mime_type}) ---\n"
+                                f"{att.text_content}"
+                            ),
+                        })
+                if m.content:
+                    content_parts.append({"type": "text", "text": m.content})
+                msg["content"] = content_parts
+            elif m.content is not None:
                 msg["content"] = m.content
             if m.name is not None:
                 msg["name"] = m.name

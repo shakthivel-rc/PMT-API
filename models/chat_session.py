@@ -2,7 +2,18 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import CHAR, JSON, Column, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import (
+    CHAR,
+    JSON,
+    BigInteger,
+    Column,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+)
 
 from db.session import Base
 
@@ -42,3 +53,28 @@ class ChatMessageRecord(Base):
     confirm_card = Column(JSON, nullable=True)
     undo_action = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=_now, nullable=False)
+
+
+class ChatMessageAttachment(Base):
+    """File attachment (image, document, log, sheet) uploaded within a chat session."""
+    __tablename__ = "chat_message_attachments"
+    __table_args__ = (
+        Index("ix_chat_attachments_workspace", "workspace_id"),
+        Index("ix_chat_attachments_conv", "conversation_id"),
+        Index("ix_chat_attachments_msg", "message_id"),
+    )
+
+    id = Column(CHAR(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    conversation_id = Column(CHAR(36), ForeignKey("chat_conversations.id"), nullable=True)
+    message_id = Column(CHAR(36), ForeignKey("chat_messages.id"), nullable=True)
+    workspace_id = Column(CHAR(36), ForeignKey("workspaces.id"), nullable=False)
+    user_id = Column(CHAR(36), ForeignKey("users.id"), nullable=False)
+    original_filename = Column(String(255), nullable=False)
+    stored_path = Column(String(500), nullable=False)
+    storage_provider = Column(String(20), nullable=False, default="local")
+    mime_type = Column(String(100), nullable=False)
+    file_size_bytes = Column(BigInteger, nullable=False, default=0)
+    extracted_text = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=_now, nullable=False)
+    deleted = Column(Integer, nullable=False, default=0)
+

@@ -126,9 +126,36 @@ class GoogleAdapter(BaseLLMAdapter):
                 continue
 
             # Standard user message
+            user_parts: list[dict[str, Any]] = []
+            if m.attachments:
+                for att in m.attachments:
+                    if att.data_base64 and (
+                        att.mime_type.startswith("image/")
+                        or att.mime_type == "application/pdf"
+                    ):
+                        user_parts.append({
+                            "inlineData": {
+                                "mimeType": att.mime_type,
+                                "data": att.data_base64,
+                            }
+                        })
+                    elif att.text_content:
+                        fn = att.filename or "Document"
+                        user_parts.append({
+                            "text": (
+                                f"--- Attached Document: {fn} ({att.mime_type}) ---\n"
+                                f"{att.text_content}"
+                            )
+                        })
+
+            if m.content:
+                user_parts.append({"text": m.content})
+            elif not user_parts:
+                user_parts.append({"text": ""})
+
             contents.append({
                 "role": "user",
-                "parts": [{"text": m.content or ""}],
+                "parts": user_parts,
             })
 
         return system_instruction, contents

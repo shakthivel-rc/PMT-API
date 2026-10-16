@@ -64,6 +64,7 @@ def _load_metadata():
         "models.initiative",
         "models.deployment",
         "models.notification",
+        "models.chat_session",
     ):
         importlib.import_module(module)
     return db_session.Base.metadata

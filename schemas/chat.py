@@ -6,6 +6,15 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field
 
 
+class ChatAttachmentSummary(BaseModel):
+    id: str
+    filename: str
+    mime_type: str
+    file_size_bytes: int
+    preview_url: str
+    created_at: Optional[str] = None
+
+
 class ChatRequest(BaseModel):
     message: Optional[str] = Field(default=None, description="User prompt or follow-up message.")
     conversation_id: Optional[str] = Field(default=None, description="Existing conversation UUID if continuing.")
@@ -14,6 +23,7 @@ class ChatRequest(BaseModel):
     cancel_action_id: Optional[str] = Field(default=None, description="Confirm token to cancel staged T2/T3 card.")
     undo_action_id: Optional[str] = Field(default=None, description="Undo token to revert a completed T1 action.")
     context_vars: Optional[dict[str, str]] = Field(default=None, description="Optional override variables (date, timezone, etc.).")
+    attachment_ids: list[str] = Field(default_factory=list, description="Staged attachment IDs for this turn.")
 
 
 class ChatResponseData(BaseModel):

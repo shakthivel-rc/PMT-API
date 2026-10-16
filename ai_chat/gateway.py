@@ -12,9 +12,10 @@ from sqlalchemy.orm import Session
 
 from ai_chat.arg_resolver import resolve_tool_arguments
 from ai_chat.domain_router import domain_router
+from ai_chat import extractors
 from ai_chat.handlers import HANDLER_MAP
 from ai_chat.handlers.context import ToolContext
-from ai_chat.llm.base import BaseLLMAdapter, LLMMessage, LLMResult, LLMToolCall
+from ai_chat.llm.base import AttachmentPayload, BaseLLMAdapter, LLMMessage, LLMResult, LLMToolCall
 from ai_chat.llm.settings import resolve_adapter_for_user
 from ai_chat.policy_engine import ConfirmCard, UndoAction, policy_engine
 from ai_chat.prompt_builder import prompt_builder
@@ -24,6 +25,7 @@ from dependencies.workspace import WorkspaceAccess
 from models.chat_session import ChatConversation, ChatMessageRecord
 from models.user import User
 from models.workspace import Workspace
+from services import chat_attachment_service
 
 
 @dataclass
@@ -56,6 +58,7 @@ class ChatGateway:
         undo_action_id: Optional[str] = None,
         adapter: Optional[BaseLLMAdapter] = None,
         context_vars: Optional[dict[str, str]] = None,
+        attachment_ids: Optional[list[str]] = None,
     ) -> ChatTurnResult:
         workspace_id = access.workspace_id
         user_id = access.user_id
@@ -208,18 +211,25 @@ class ChatGateway:
         # -------------------------------------------------------------
         # 4. Standard Message Turn
         # -------------------------------------------------------------
-        if not message:
+        if not message and not attachment_ids:
             return ChatTurnResult(
                 conversation_id=conversation_id or "default",
                 error="No message or action provided.",
             )
+
+        if not message and attachment_ids:
+            message = "Please analyze the attached document(s)/image(s) and assist."
 
         # Ensure conversation exists
         conv = self._get_or_create_conversation(db, workspace_id, user_id, conversation_id)
         conversation_id = conv.id
 
         # Save user message to database history
-        self._save_message(db, conversation_id, "user", message)
+        user_msg = self._save_message(db, conversation_id, "user", message)
+        if attachment_ids:
+            chat_attachment_service.link_attachments(
+                db, attachment_ids, conversation_id, user_msg.id
+            )
 
         # Resolve LLM adapter
         if not adapter:
@@ -280,6 +290,15 @@ class ChatGateway:
                     )
                     for tc in r.tool_calls
                 ]
+            msg_attachments: list[AttachmentPayload] | None = None
+            if r.role == "user":
+                att_records = chat_attachment_service.get_attachments_for_message(db, r.id)
+                if att_records and ws:
+                    msg_attachments = [
+                        extractors.build_attachment_payload(ws, att)
+                        for att in att_records
+                    ]
+
             llm_messages.append(
                 LLMMessage(
                     role=r.role,
@@ -287,6 +306,7 @@ class ChatGateway:
                     name=r.name,
                     tool_call_id=r.tool_call_id,
                     tool_calls=tcs,
+                    attachments=msg_attachments,
                 )
             )
 

@@ -63,6 +63,11 @@ from ai_chat.handlers.virtual_handlers import (
     handle_issue_clone,
     handle_knowledge_search,
 )
+from ai_chat.handlers.conversion_handlers import (
+    handle_bulk_issue_create,
+    handle_issue_create_from_attachment,
+    handle_workspace_scaffold_from_spec,
+)
 from ai_chat.handlers.write_handlers import (
     handle_comment_create,
     handle_comment_delete,
@@ -285,6 +290,11 @@ HANDLER_MAP: dict[str, Callable[[ToolContext, dict[str, Any]], Any]] = {
     # Integrations
     "github_repositories_list": handle_github_repositories_list,
     "github_repository_link": handle_github_repository_link,
+
+    # Multimodal Autonomous Conversions
+    "issue_create_from_attachment": handle_issue_create_from_attachment,
+    "workspace_scaffold_from_spec": handle_workspace_scaffold_from_spec,
+    "bulk_issue_create": handle_bulk_issue_create,
 }
 
 

@@ -87,10 +87,38 @@ class AnthropicAdapter(BaseLLMAdapter):
                 continue
 
             # Standard user message
-            formatted.append({
-                "role": "user",
-                "content": m.content or "",
-            })
+            if m.attachments:
+                u_blocks: list[dict[str, Any]] = []
+                for att in m.attachments:
+                    if att.data_base64 and att.mime_type.startswith("image/"):
+                        u_blocks.append({
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": att.mime_type,
+                                "data": att.data_base64,
+                            },
+                        })
+                    elif att.text_content:
+                        fn = att.filename or "Document"
+                        u_blocks.append({
+                            "type": "text",
+                            "text": (
+                                f"--- Attached Document: {fn} ({att.mime_type}) ---\n"
+                                f"{att.text_content}"
+                            ),
+                        })
+                if m.content:
+                    u_blocks.append({"type": "text", "text": m.content})
+                formatted.append({
+                    "role": "user",
+                    "content": u_blocks,
+                })
+            else:
+                formatted.append({
+                    "role": "user",
+                    "content": m.content or "",
+                })
 
         return system_prompt, formatted
 
