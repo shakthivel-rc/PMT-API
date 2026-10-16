@@ -83,15 +83,19 @@ class GoogleAdapter(BaseLLMAdapter):
         self, messages: list[LLMMessage]
     ) -> tuple[Optional[dict[str, Any]], list[dict[str, Any]]]:
         system_instruction: Optional[dict[str, Any]] = None
-        contents: list[dict[str, Any]] = []
+        non_system: list[LLMMessage] = []
 
         for m in messages:
             if m.role == "system":
                 system_instruction = {"parts": [{"text": m.content or ""}]}
                 continue
+            non_system.append(m)
 
+        raw_turns: list[dict[str, Any]] = []
+
+        for idx, m in enumerate(non_system):
             if m.role == "tool":
-                contents.append({
+                raw_turns.append({
                     "role": "user",
                     "parts": [
                         {
@@ -109,17 +113,26 @@ class GoogleAdapter(BaseLLMAdapter):
                 if m.content:
                     parts.append({"text": m.content})
                 if m.tool_calls:
+                    # In Gemini's protocol, every functionCall part MUST be followed by a functionResponse.
+                    # If this action was paused for confirmation, cancelled, or aborted, there is no
+                    # corresponding tool response, so we format it as descriptive text instead of functionCall.
+                    has_tool_reply = (idx + 1 < len(non_system) and non_system[idx + 1].role == "tool")
                     for tc in m.tool_calls:
-                        part: dict[str, Any] = {
-                            "functionCall": {
-                                "name": tc.name,
-                                "args": tc.arguments,
+                        if has_tool_reply:
+                            part: dict[str, Any] = {
+                                "functionCall": {
+                                    "name": tc.name,
+                                    "args": tc.arguments,
+                                }
                             }
-                        }
-                        if tc.thought_signature:
-                            part["thoughtSignature"] = tc.thought_signature
-                        parts.append(part)
-                contents.append({
+                            if tc.thought_signature:
+                                part["thoughtSignature"] = tc.thought_signature
+                            parts.append(part)
+                        else:
+                            parts.append({
+                                "text": f"[Requested action: {tc.name} with {json.dumps(tc.arguments)}]"
+                            })
+                raw_turns.append({
                     "role": "model",
                     "parts": parts,
                 })
@@ -153,12 +166,38 @@ class GoogleAdapter(BaseLLMAdapter):
             elif not user_parts:
                 user_parts.append({"text": ""})
 
-            contents.append({
+            raw_turns.append({
                 "role": "user",
                 "parts": user_parts,
             })
 
-        return system_instruction, contents
+        # Normalization for Gemini API requirements:
+        # 1. Merge consecutive turns with the same role (e.g. user + user, model + model)
+        # 2. Filter out turns with empty parts
+        # 3. Ensure sequence starts with a 'user' turn
+        # 4. Ensure sequence ends with a 'user' turn (strip trailing model turns)
+        merged_turns: list[dict[str, Any]] = []
+        for turn in raw_turns:
+            if not turn.get("parts"):
+                continue
+            if merged_turns and merged_turns[-1]["role"] == turn["role"]:
+                merged_turns[-1]["parts"].extend(turn["parts"])
+            else:
+                merged_turns.append(turn)
+
+        # Gemini requires contents to start with 'user'
+        if merged_turns and merged_turns[0]["role"] == "model":
+            merged_turns.insert(0, {"role": "user", "parts": [{"text": "Hello"}]})
+
+        # Gemini requires contents to end with 'user'
+        while merged_turns and merged_turns[-1]["role"] == "model":
+            merged_turns.pop()
+
+        # If empty, add default user turn
+        if not merged_turns:
+            merged_turns.append({"role": "user", "parts": [{"text": "Hello"}]})
+
+        return system_instruction, merged_turns
 
     def _parse_response(self, data: dict[str, Any]) -> LLMResult:
         candidates = data.get("candidates", [])

@@ -157,3 +157,55 @@ def test_anthropic_adapter_multimodal_formatting():
     assert blocks[0]["source"]["type"] == "base64"
     assert blocks[0]["source"]["data"] == "cG5nZGF0YQ=="
     assert blocks[1]["text"] == "Convert wireframe to tickets"
+
+
+def test_google_adapter_multi_turn_normalization():
+    adapter = GoogleAdapter(api_key="fake-key")
+    from ai_chat.llm.base import LLMToolCall
+
+    messages = [
+        LLMMessage(role="system", content="System instruction"),
+        LLMMessage(role="user", content="Turn 1 User"),
+        LLMMessage(role="assistant", content="Turn 1 Assistant Part 1"),
+        LLMMessage(role="assistant", content="Turn 1 Assistant Part 2"),  # Consecutive assistant
+        LLMMessage(role="user", content="Turn 2 User"),
+        LLMMessage(role="assistant", content="Turn 2 Assistant"),
+    ]
+
+    sys_inst, contents = adapter._format_messages_and_system(messages)
+    assert sys_inst == {"parts": [{"text": "System instruction"}]}
+    # Notice: trailing model turn MUST be popped to satisfy Gemini API "ends with user turn"
+    assert contents[-1]["role"] == "user"
+    # Consecutive assistant messages should be merged into single model turn
+    assert contents[0]["role"] == "user"
+    assert contents[1]["role"] == "model"
+    assert len(contents[1]["parts"]) == 2
+    assert contents[2]["role"] == "user"
+
+
+def test_google_adapter_unfulfilled_tool_call_to_text():
+    adapter = GoogleAdapter(api_key="fake-key")
+    from ai_chat.llm.base import LLMToolCall
+
+    # Tool call NOT followed by tool message (e.g. paused for confirmation or cancelled)
+    messages = [
+        LLMMessage(role="user", content="Create project SEC"),
+        LLMMessage(
+            role="assistant",
+            content=None,
+            tool_calls=[LLMToolCall(id="tc-1", name="space_create", arguments={"name": "SEC"})],
+        ),
+        LLMMessage(role="assistant", content="Action requires confirmation: space_create"),
+        LLMMessage(role="user", content="Please inspect this log"),
+    ]
+
+    _, contents = adapter._format_messages_and_system(messages)
+    assert len(contents) == 3
+    assert contents[0]["role"] == "user"
+    assert contents[1]["role"] == "model"
+    # Function call was converted to text because no tool message answered it
+    part_texts = [p.get("text", "") for p in contents[1]["parts"]]
+    assert any("[Requested action: space_create" in t for t in part_texts)
+    assert any("Action requires confirmation" in t for t in part_texts)
+    assert contents[2]["role"] == "user"
+

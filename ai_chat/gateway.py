@@ -271,7 +271,7 @@ class ChatGateway:
         history_records = (
             db.query(ChatMessageRecord)
             .filter(ChatMessageRecord.conversation_id == conversation_id)
-            .order_by(ChatMessageRecord.created_at.asc())
+            .order_by(ChatMessageRecord.created_at.asc(), ChatMessageRecord.seq.asc())
             .all()
         )
 

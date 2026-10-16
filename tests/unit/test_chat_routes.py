@@ -172,3 +172,112 @@ def test_list_available_tools_returns_enabled_tools():
         assert "name" in t
         assert "tier" in t
         assert "category" in t
+
+
+# =========================================================================
+# 3. Chat Turn Execution Route Tests
+# =========================================================================
+
+def test_handle_chat_turn_user_not_found(db):
+    from routes.chat import handle_chat_turn
+    from schemas.chat import ChatRequest
+
+    access = WorkspaceAccess(workspace_id="ws-fake", user_id="user-nonexistent", role="member")
+    body = ChatRequest(message="Hello")
+
+    with pytest.raises(HTTPException) as exc_info:
+        handle_chat_turn(body=body, access=access, db=db)
+    assert exc_info.value.status_code == 404
+
+
+def test_handle_chat_turn_success_with_mock_gateway(db, monkeypatch):
+    from routes.chat import handle_chat_turn
+    from schemas.chat import ChatRequest
+    from ai_chat.gateway import ChatTurnResult
+
+    u = User(id=str(uuid.uuid4()), username="turn_user", email="turn@example.com", first_name="Turn", last_name="User", organization="Acme", department="Eng")
+    ws = Workspace(id=str(uuid.uuid4()), name="Turn WS", slug=f"wsturn-{uuid.uuid4().hex[:6]}", created_by=u.id)
+    db.add_all([u, ws])
+    db.commit()
+
+    # Mock gateway execute_turn
+    fake_result = ChatTurnResult(
+        conversation_id="conv-123",
+        reply="I am your PMT AI Assistant.",
+        tool_calls_executed=[{"tool": "space_list", "args": {}}],
+    )
+    from ai_chat.gateway import chat_gateway
+    monkeypatch.setattr(chat_gateway, "execute_turn", lambda **kwargs: fake_result)
+
+    access = WorkspaceAccess(workspace_id=ws.id, user_id=u.id, role="member")
+    body = ChatRequest(message="What spaces are here?")
+    resp = handle_chat_turn(body=body, access=access, db=db)
+
+    assert resp.status_code == 200
+    assert resp.data.conversation_id == "conv-123"
+    assert resp.data.reply == "I am your PMT AI Assistant."
+    assert len(resp.data.tool_calls_executed) == 1
+
+
+def test_get_chat_attachment_not_found(db):
+    from routes.chat import get_chat_attachment
+
+    u = User(id=str(uuid.uuid4()), username="att_user", email="att@example.com", first_name="Att", last_name="User", organization="Acme", department="Eng")
+    ws = Workspace(id=str(uuid.uuid4()), name="Att WS", slug=f"wsatt-{uuid.uuid4().hex[:6]}", created_by=u.id)
+    db.add_all([u, ws])
+    db.commit()
+
+    access = WorkspaceAccess(workspace_id=ws.id, user_id=u.id, role="member")
+    with pytest.raises(HTTPException) as exc_info:
+        get_chat_attachment(attachment_id="nonexistent-att", access=access, db=db)
+    assert exc_info.value.status_code == 404
+
+
+# =========================================================================
+# 4. User Chat Settings Route Tests
+# =========================================================================
+
+def test_user_chat_settings_crud_lifecycle(db, monkeypatch):
+    from routes.chat import get_chat_settings, update_chat_settings, delete_chat_settings
+    from schemas.chat import ChatSettingsUpdateRequest
+
+    u = User(id=str(uuid.uuid4()), username="settings_user", email="settings@example.com", first_name="Set", last_name="User", organization="Acme", department="Eng")
+    db.add(u)
+    db.commit()
+    test_user_id = u.id
+
+    fake_request = MagicMock()
+    monkeypatch.setattr("routes.chat.caller_id", lambda req: test_user_id)
+
+    # 1. Get default settings
+    default_resp = get_chat_settings(request=fake_request, db=db)
+    assert default_resp.status_code == 200
+    assert default_resp.data.has_api_key is False
+    assert default_resp.data.api_key_masked is None
+
+    # 2. Update settings
+    update_body = ChatSettingsUpdateRequest(
+        provider="google",
+        model="gemini-3.8-flash",
+        api_key="AIzaSyDummySecretKey12345",
+    )
+    update_resp = update_chat_settings(body=update_body, request=fake_request, db=db)
+    assert update_resp.status_code == 200
+    assert update_resp.data.provider == "google"
+    assert update_resp.data.model == "gemini-3.8-flash"
+    assert update_resp.data.has_api_key is True
+    assert "AIza" in update_resp.data.api_key_masked
+
+    # 3. Read back updated settings
+    read_resp = get_chat_settings(request=fake_request, db=db)
+    assert read_resp.status_code == 200
+    assert read_resp.data.has_api_key is True
+
+    # 4. Delete settings
+    del_resp = delete_chat_settings(request=fake_request, db=db)
+    assert del_resp.status_code == 200
+    assert del_resp.data["deleted"] is True
+
+    # 5. Verify reset to default
+    after_del_resp = get_chat_settings(request=fake_request, db=db)
+    assert after_del_resp.data.has_api_key is False
